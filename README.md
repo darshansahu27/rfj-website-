@@ -1,3 +1,0 @@
-# rfj-website-
-this is my first repo...
-My name is Darshan
