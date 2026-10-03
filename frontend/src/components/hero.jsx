@@ -65,7 +65,7 @@ function Hero() {
           {/* Button */}
           <div className="pt-2">
             <a
-              href="#menu"
+              href="menu"
               className="inline-flex items-center gap-2 rounded-full bg-[#8d1900] px-8 py-4 font-jakarta text-[16px] font-bold text-white shadow-lg transition-all duration-200 hover:bg-[#b32d0f] hover:scale-105 active:scale-95"
             >
               Our Menu
