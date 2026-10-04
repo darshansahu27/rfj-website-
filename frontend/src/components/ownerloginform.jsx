@@ -40,22 +40,26 @@ function LockIcon() {
 }
 
 function EyeIcon({ visible }) {
-  return visible ? (
-    <svg
-      width="17"
-      height="17"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
-      <circle cx="12" cy="12" r="2.5" />
-    </svg>
-  ) : (
+  if (visible) {
+    return (
+      <svg
+        width="17"
+        height="17"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+        <circle cx="12" cy="12" r="2.5" />
+      </svg>
+    );
+  }
+
+  return (
     <svg
       width="17"
       height="17"
@@ -103,7 +107,9 @@ function OwnerLoginForm() {
   const handleSubmit = (event) => {
     event.preventDefault();
 
-    if (loading) return;
+    if (loading) {
+      return;
+    }
 
     const trimmedEmail = email.trim();
 
@@ -134,7 +140,9 @@ function OwnerLoginForm() {
         localStorage.setItem("rfj_owner_email", trimmedEmail);
       }
 
-      navigate("/managerdashboard");
+      // IMPORTANT:
+      // Owner Login goes to Owner Dashboard.
+      navigate("/ownerdashboard");
     }, 1200);
   };
 
@@ -261,3 +269,4 @@ function OwnerLoginForm() {
 }
 
 export default OwnerLoginForm;
+

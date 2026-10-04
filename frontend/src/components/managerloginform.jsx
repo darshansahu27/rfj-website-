@@ -1,7 +1,8 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function VisibilityIcon({ visible }) {
-  return (
+  return visible ? (
     <svg
       width="20"
       height="20"
@@ -13,19 +14,25 @@ function VisibilityIcon({ visible }) {
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      {visible ? (
-        <>
-          <path d="M3 3l18 18" />
-          <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
-          <path d="M9.9 4.3A10.8 10.8 0 0 1 12 4c5 0 8.5 4 10 8a16 16 0 0 1-3.1 4.7" />
-          <path d="M6.6 6.6C4.9 7.7 3.7 9.5 2 12c1.5 4 5 8 10 8 1.2 0 2.3-.2 3.3-.6" />
-        </>
-      ) : (
-        <>
-          <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
-          <circle cx="12" cy="12" r="3" />
-        </>
-      )}
+      <path d="M3 3l18 18" />
+      <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+      <path d="M9.9 4.3A10.8 10.8 0 0 1 12 4c5 0 8.5 4 10 8a16 16 0 0 1-3.1 4.7" />
+      <path d="M6.6 6.6C4.9 7.7 3.7 9.5 2 12c1.5 4 5 8 10 8 1.2 0 2.3-.2 3.3-.6" />
+    </svg>
+  ) : (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+      <circle cx="12" cy="12" r="3" />
     </svg>
   );
 }
@@ -70,9 +77,10 @@ function ErrorIcon() {
 }
 
 function ManagerLoginForm() {
+  const navigate = useNavigate();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -86,7 +94,6 @@ function ManagerLoginForm() {
     setError(false);
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
     setEmailValid(emailRegex.test(value));
   };
 
@@ -98,13 +105,36 @@ function ManagerLoginForm() {
   const handleSubmit = (event) => {
     event.preventDefault();
 
+    if (loading) return;
+
     setError(false);
     setLoading(true);
 
+    // Temporary frontend-only credentials.
+    // Replace this with the real backend authentication later.
+    const demoEmail = "manager@test.com";
+    const demoPassword = "manager123";
+
     setTimeout(() => {
+      const isValidLogin =
+        email.trim().toLowerCase() === demoEmail &&
+        password === demoPassword;
+
       setLoading(false);
-      setError(true);
-    }, 1500);
+
+      if (!isValidLogin) {
+        setError(true);
+        return;
+      }
+
+      // Remember the manager email for frontend testing.
+      if (rememberMe) {
+        localStorage.setItem("rfj_manager_email", email.trim());
+      }
+
+      // Successful Manager Login → Manager Dashboard
+      navigate("/managerdashboard");
+    }, 1000);
   };
 
   return (
@@ -157,7 +187,8 @@ function ManagerLoginForm() {
                 onChange={handleEmailChange}
                 placeholder="Enter your registered email"
                 required
-                className="h-11 w-full rounded-lg border border-[#8e706a]/20 bg-[#fff8f5] px-3 pr-11 font-jakarta text-sm text-[#1e1b18] outline-none placeholder:text-[#8e706a] focus:border-[#8d1900] focus:ring-2 focus:ring-[#8d1900]/10"
+                disabled={loading}
+                className="h-11 w-full rounded-lg border border-[#8e706a]/20 bg-[#fff8f5] px-3 pr-11 font-jakarta text-sm text-[#1e1b18] outline-none placeholder:text-[#8e706a] focus:border-[#8d1900] focus:ring-2 focus:ring-[#8d1900]/10 disabled:cursor-not-allowed disabled:opacity-60"
               />
 
               {emailValid && (
@@ -185,7 +216,8 @@ function ManagerLoginForm() {
                 onChange={handlePasswordChange}
                 placeholder="Enter your password"
                 required
-                className="h-11 w-full rounded-lg border border-[#8e706a]/20 bg-[#fff8f5] px-3 pr-11 font-jakarta text-sm text-[#1e1b18] outline-none placeholder:text-[#8e706a] focus:border-[#8d1900] focus:ring-2 focus:ring-[#8d1900]/10"
+                disabled={loading}
+                className="h-11 w-full rounded-lg border border-[#8e706a]/20 bg-[#fff8f5] px-3 pr-11 font-jakarta text-sm text-[#1e1b18] outline-none placeholder:text-[#8e706a] focus:border-[#8d1900] focus:ring-2 focus:ring-[#8d1900]/10 disabled:cursor-not-allowed disabled:opacity-60"
               />
 
               <button
@@ -193,7 +225,8 @@ function ManagerLoginForm() {
                 onClick={() =>
                   setShowPassword((previous) => !previous)
                 }
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5a413b] transition-colors hover:text-[#8d1900]"
+                disabled={loading}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5a413b] transition-colors hover:text-[#8d1900] disabled:cursor-not-allowed disabled:opacity-60"
                 aria-label={
                   showPassword ? "Hide password" : "Show password"
                 }
@@ -204,10 +237,17 @@ function ManagerLoginForm() {
           </div>
 
           {/* Remember Me */}
-          <label className="flex cursor-pointer items-center gap-2">
+          <label
+            className={`flex items-center gap-2 ${
+              loading
+                ? "cursor-not-allowed opacity-60"
+                : "cursor-pointer"
+            }`}
+          >
             <input
               type="checkbox"
               checked={rememberMe}
+              disabled={loading}
               onChange={(event) =>
                 setRememberMe(event.target.checked)
               }
@@ -231,6 +271,21 @@ function ManagerLoginForm() {
               </p>
             </div>
           )}
+
+          {/* Demo Login Information */}
+          <div className="rounded-lg border border-[#8d1900]/10 bg-[#fff8f5] p-3">
+            <p className="font-jakarta text-[10px] font-semibold text-[#8d1900]">
+              Frontend Testing Credentials
+            </p>
+
+            <p className="mt-1 font-jakarta text-[10px] text-[#6b6b6b]">
+              Email: manager@test.com
+            </p>
+
+            <p className="font-jakarta text-[10px] text-[#6b6b6b]">
+              Password: manager123
+            </p>
+          </div>
 
           {/* Login Button */}
           <button
@@ -258,3 +313,4 @@ function ManagerLoginForm() {
 }
 
 export default ManagerLoginForm;
+

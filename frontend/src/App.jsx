@@ -1,8 +1,8 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-import CustomerHome from "./pages/customerhome";
-import CustomerSignup from "./pages/customersignup";
-import OtpVerification from "./pages/otpverification";
+
+
+
 import OrderTracking from "./pages/ordertracking";
 import CustomerProfile from "./pages/customerprofile";
 
@@ -24,10 +24,6 @@ function App() {
     <BrowserRouter>
       <ManagerOrderProvider>
         <Routes>
-          {/* Customer Pages */}
-          <Route path="/" element={<CustomerHome />} />
-          <Route path="/signup" element={<CustomerSignup />} />
-          <Route path="/otpverification" element={<OtpVerification />} />
           <Route path="/ordertracking" element={<OrderTracking />} />
           <Route path="/profile" element={<CustomerProfile />} />
 
