@@ -61,7 +61,7 @@ function OwnerProfile() {
 
     // Connect this to your authentication logout function
     // when authentication is implemented.
-    window.location.href = "/login";
+    window.location.href = "/ownerlogin";
   };
 
   const handleEditName = () => {
