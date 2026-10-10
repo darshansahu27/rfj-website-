@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-
-
+import CustomerCartPage from "./pages/customercart";
+import CustomerCheckout from "./pages/customercheckout";
+import CustomerMenu from "./components/customermenu";
 
 import OrderTracking from "./pages/ordertracking";
 import CustomerProfile from "./pages/customerprofile";
@@ -24,6 +25,10 @@ function App() {
     <BrowserRouter>
       <ManagerOrderProvider>
         <Routes>
+          <Route path="/customercart" element={<CustomerCartPage />} />
+          <Route path="/checkoutpage" element={<CustomerCheckout />} />
+          <Route path="/" element={<CustomerMenu />} />
+          <Route path="/customermenu" element={<CustomerMenu />} />
           <Route path="/ordertracking" element={<OrderTracking />} />
           <Route path="/profile" element={<CustomerProfile />} />
 

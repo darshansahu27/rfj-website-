@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 
 import ManagerMenuHeader from "../components/managermenuheader";
@@ -7,72 +7,93 @@ import ManagerMenuCategories from "../components/managermenucategories";
 import ManagerMenuItemCard from "../components/managermenuitemcard";
 import ManagerAddMenuItem from "../components/manageraddmenuitem";
 
-const STORAGE_KEY = "rfj_menu_items";
-
-const defaultImage =
-  "https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?auto=format&fit=crop&w=300&q=80";
-
-const defaultMenuItem = {
-  id: "butter-chicken-default",
-  name: "Butter Chicken",
-  description:
-    "Creamy tomato-based chicken curry cooked with aromatic spices.",
-  category: "Main Course",
-  price: "380",
-  foodType: "Veg",
-  available: true,
-  image: defaultImage,
-};
+const API_URL = "http://localhost:5000/api/menu";
 
 function ManagerMenu() {
   const location = useLocation();
 
+  const [menuItems, setMenuItems] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const backTo = location.state?.from || "/managerdashboard";
 
-  const [menuItems, setMenuItems] = useState(() => {
+  // Fetch menu items from the Express backend.
+  const fetchMenuItems = useCallback(async () => {
     try {
-      const savedItems = localStorage.getItem(STORAGE_KEY);
+      setLoading(true);
+      setError("");
 
-      if (savedItems) {
-        const parsedItems = JSON.parse(savedItems);
+      const response = await fetch(API_URL);
+      const result = await response.json();
 
-        if (Array.isArray(parsedItems) && parsedItems.length > 0) {
-          return parsedItems;
-        }
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Failed to load menu items.");
       }
-    } catch {
-      // Use default item if saved data cannot be read.
-    }
 
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify([defaultMenuItem])
-    );
+      const formattedItems = result.data.map((item) => ({
+        id: item.id,
+        name: item.name,
+        description: item.description || "",
+        categoryId: item.category_id,
+        category: item.category_id,
+        price: String(item.price),
+        foodType:
+          item.dietary_type === "vegetarian" ? "Veg" : "Non-Veg",
+        available: item.is_available,
+        image: item.image_url || "",
+        isPopular: item.is_popular,
+      }));
 
-    return [defaultMenuItem];
-  });
+      setMenuItems(formattedItems);
+    } catch (err) {
+      console.error("Failed to fetch manager menu:", err);
 
-  const handleSaveNewItem = (item) => {
-    const newItem = {
-      id: Date.now(),
-      ...item,
-    };
-
-    setMenuItems((currentItems) => {
-      const updatedItems = [...currentItems, newItem];
-
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(updatedItems)
+      setError(
+        "Unable to load menu items. Check that your backend is running and try again."
       );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-      return updatedItems;
+  useEffect(() => {
+    fetchMenuItems();
+  }, [fetchMenuItems]);
+
+  // Adding new items will be connected to the API in a later step.
+  
+const handleSaveNewItem = async (item) => {
+  try {
+    setError("");
+
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(item),
     });
 
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      throw new Error(
+        result.message || "Failed to create menu item."
+      );
+    }
+
+    // Refresh the menu from Supabase.
+    await fetchMenuItems();
+
+    // Close the form after a successful save.
     setShowAddModal(false);
-  };
+  } catch (err) {
+    console.error("Failed to add menu item:", err);
+    setError(err.message || "Unable to save the new menu item.");
+  }
+};
 
   return (
     <main className="min-h-screen bg-[#fff8f5]">
@@ -85,7 +106,6 @@ function ManagerMenu() {
           <ManagerMenuCategories />
         </div>
 
-        {/* Add New Item Button */}
         <div className="mt-5">
           <button
             type="button"
@@ -96,18 +116,35 @@ function ManagerMenu() {
           </button>
         </div>
 
-        {/* Menu Items */}
         <div className="mt-5 space-y-4">
-          {menuItems.map((item) => (
-            <ManagerMenuItemCard
-              key={item.id}
-              item={item}
-            />
-          ))}
+          {loading ? (
+            <p className="py-10 text-center text-sm text-[#5a413b]">
+              Loading menu items...
+            </p>
+          ) : error ? (
+            <div className="py-10 text-center">
+              <p className="text-sm text-red-700">{error}</p>
+
+              <button
+                type="button"
+                onClick={fetchMenuItems}
+                className="mt-4 rounded-lg bg-[#8d1900] px-5 py-2 text-sm font-bold text-white"
+              >
+                Try Again
+              </button>
+            </div>
+          ) : menuItems.length === 0 ? (
+            <p className="py-10 text-center text-sm text-[#5a413b]">
+              No menu items found.
+            </p>
+          ) : (
+            menuItems.map((item) => (
+              <ManagerMenuItemCard key={item.id} item={item} />
+            ))
+          )}
         </div>
       </div>
 
-      {/* Add New Item */}
       {showAddModal && (
         <ManagerAddMenuItem
           onClose={() => setShowAddModal(false)}
@@ -119,3 +156,4 @@ function ManagerMenu() {
 }
 
 export default ManagerMenu;
+

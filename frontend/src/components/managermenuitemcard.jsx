@@ -1,5 +1,8 @@
 import { useState } from "react";
 
+const API_URL = "http://localhost:5000/api/menu";
+
+
 const categories = [
   "Starters",
   "Main Course",
@@ -9,8 +12,6 @@ const categories = [
   "Beverages",
   "Desserts",
 ];
-
-const STORAGE_KEY = "rfj_menu_items";
 
 const defaultImage =
   "https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?auto=format&fit=crop&w=300&q=80";
@@ -29,21 +30,30 @@ function ManagerMenuItemCard({
   },
 }) {
   const [available, setAvailable] = useState(item.available);
-  const [showEditModal, setShowEditModal] = useState(false);
-
   const [name, setName] = useState(item.name);
   const [description, setDescription] = useState(item.description);
   const [category, setCategory] = useState(item.category);
-  const [image, setImage] = useState(item.image);
+  const [image, setImage] = useState(item.image || defaultImage);
   const [price, setPrice] = useState(item.price);
   const [foodType, setFoodType] = useState(item.foodType);
 
+  const [showEditModal, setShowEditModal] = useState(false);
   const [editName, setEditName] = useState(item.name);
-  const [editDescription, setEditDescription] = useState(item.description);
+  const [editDescription, setEditDescription] = useState(
+    item.description
+  );
   const [editCategory, setEditCategory] = useState(item.category);
-  const [editImage, setEditImage] = useState(item.image);
+  const [editImage, setEditImage] = useState(
+    item.image || defaultImage
+  );
   const [editPrice, setEditPrice] = useState(item.price);
   const [editFoodType, setEditFoodType] = useState(item.foodType);
+
+  const [saving, setSaving] = useState(false);
+  const [updatingAvailability, setUpdatingAvailability] =
+    useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
 
   const handleEditOpen = () => {
     setEditName(name);
@@ -52,6 +62,8 @@ function ManagerMenuItemCard({
     setEditImage(image);
     setEditPrice(price);
     setEditFoodType(foodType);
+    setError("");
+    setMessage("");
     setShowEditModal(true);
   };
 
@@ -60,75 +72,121 @@ function ManagerMenuItemCard({
 
     if (!file) return;
 
-    const imageUrl = URL.createObjectURL(file);
-    setEditImage(imageUrl);
+    // Preview only. Uploading images to persistent storage
+    // will be connected separately.
+    setEditImage(URL.createObjectURL(file));
   };
 
-  const handleSave = () => {
-    const updatedItem = {
-      ...item,
-      name: editName,
-      description: editDescription,
-      category: editCategory,
-      image: editImage,
-      price: editPrice,
-      foodType: editFoodType,
-      available,
-    };
+  const handleSave = async () => {
+    const trimmedName = editName.trim();
+    const numericPrice = Number(editPrice);
 
-    setName(editName);
-    setDescription(editDescription);
-    setCategory(editCategory);
-    setImage(editImage);
-    setPrice(editPrice);
-    setFoodType(editFoodType);
-
-    try {
-      const savedItems = localStorage.getItem(STORAGE_KEY);
-      const currentItems = savedItems ? JSON.parse(savedItems) : [];
-
-      const updatedItems = currentItems.map((currentItem) =>
-        currentItem.id === item.id ? updatedItem : currentItem
-      );
-
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(updatedItems)
-      );
-    } catch (error) {
-      console.error("Unable to save menu item:", error);
+    if (!trimmedName) {
+      setError("Please enter a dish name.");
+      return;
     }
 
-    setShowEditModal(false);
-  };
+    if (
+      editPrice === "" ||
+      !Number.isFinite(numericPrice) ||
+      numericPrice < 0
+    ) {
+      setError("Please enter a valid price.");
+      return;
+    }
 
-  const handleAvailabilityChange = () => {
-    setAvailable((current) => {
-      const updatedAvailable = !current;
+    setSaving(true);
+    setError("");
+    setMessage("");
 
-      try {
-        const savedItems = localStorage.getItem(STORAGE_KEY);
-        const currentItems = savedItems ? JSON.parse(savedItems) : [];
+    try {
+      const response = await fetch(`${API_URL}/${item.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: trimmedName,
+          description: editDescription.trim(),
+          price: numericPrice,
+          dietary_type:
+            editFoodType === "Veg"
+              ? "vegetarian"
+              : "non_vegetarian",
+        }),
+      });
 
-        const updatedItems = currentItems.map((currentItem) =>
-          currentItem.id === item.id
-            ? {
-                ...currentItem,
-                available: updatedAvailable,
-              }
-            : currentItem
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message || "Unable to save menu item."
         );
-
-        localStorage.setItem(
-          STORAGE_KEY,
-          JSON.stringify(updatedItems)
-        );
-      } catch (error) {
-        console.error("Unable to save availability:", error);
       }
 
-      return updatedAvailable;
-    });
+      const savedItem = result.data;
+
+      setName(savedItem.name);
+      setDescription(savedItem.description || "");
+      setPrice(String(savedItem.price));
+      setFoodType(
+        savedItem.dietary_type === "vegetarian"
+          ? "Veg"
+          : "Non-Veg"
+      );
+      setAvailable(savedItem.is_available);
+
+      // Category and image are not persisted by this request.
+      setMessage("Menu item saved successfully.");
+      setShowEditModal(false);
+    } catch (err) {
+      console.error("Unable to save menu item:", err);
+      setError(
+        err.message ||
+          "Could not save changes. Check that the backend is running."
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAvailabilityChange = async () => {
+    const nextAvailable = !available;
+
+    setUpdatingAvailability(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const response = await fetch(`${API_URL}/${item.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          is_available: nextAvailable,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message || "Unable to update availability."
+        );
+      }
+
+      setAvailable(result.data.is_available);
+      setMessage("Availability updated successfully.");
+    } catch (err) {
+      console.error("Unable to update availability:", err);
+      setError(
+        err.message ||
+          "Could not update availability. Please try again."
+      );
+    } finally {
+      setUpdatingAvailability(false);
+    }
   };
 
   return (
@@ -137,7 +195,7 @@ function ManagerMenuItemCard({
         <div className="flex gap-3 p-3">
           <div className="h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-[#f1e8e3]">
             <img
-              src={image}
+              src={image || defaultImage}
               alt={name}
               className="h-full w-full object-cover"
             />
@@ -196,7 +254,8 @@ function ManagerMenuItemCard({
           <button
             type="button"
             onClick={handleAvailabilityChange}
-            className={`relative h-5 w-9 rounded-full transition-colors ${
+            disabled={updatingAvailability}
+            className={`relative h-5 w-9 rounded-full transition-colors disabled:opacity-50 ${
               available ? "bg-[#159447]" : "bg-[#b9a9a2]"
             }`}
             aria-label={
@@ -212,6 +271,18 @@ function ManagerMenuItemCard({
         </div>
       </article>
 
+      {message && (
+        <p className="mt-2 text-xs text-green-700" role="status">
+          {message}
+        </p>
+      )}
+
+      {error && !showEditModal && (
+        <p className="mt-2 text-xs text-red-700" role="alert">
+          {error}
+        </p>
+      )}
+
       {showEditModal && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-4">
           <div className="max-h-[90vh] w-full max-w-[520px] overflow-y-auto rounded-t-2xl bg-white p-5">
@@ -222,7 +293,10 @@ function ManagerMenuItemCard({
 
               <button
                 type="button"
-                onClick={() => setShowEditModal(false)}
+                onClick={() => {
+                  setShowEditModal(false);
+                  setError("");
+                }}
                 className="font-jakarta text-[20px] text-[#6b6b6b]"
                 aria-label="Close"
               >
@@ -239,7 +313,7 @@ function ManagerMenuItemCard({
                 <div className="mt-2 flex items-center gap-3">
                   <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-[#f1e8e3]">
                     <img
-                      src={editImage}
+                      src={editImage || defaultImage}
                       alt="Menu preview"
                       className="h-full w-full object-cover"
                     />
@@ -247,7 +321,6 @@ function ManagerMenuItemCard({
 
                   <label className="cursor-pointer rounded-full border border-[#eadfce] px-4 py-2 font-jakarta text-[10px] font-semibold text-[#8d1900]">
                     Change Image
-
                     <input
                       type="file"
                       accept="image/*"
@@ -256,6 +329,10 @@ function ManagerMenuItemCard({
                     />
                   </label>
                 </div>
+
+                <p className="mt-1 text-[10px] text-[#8e706a]">
+                  Image upload is preview-only for now.
+                </p>
               </div>
 
               <div>
@@ -266,7 +343,9 @@ function ManagerMenuItemCard({
                 <input
                   type="text"
                   value={editName}
-                  onChange={(event) => setEditName(event.target.value)}
+                  onChange={(event) =>
+                    setEditName(event.target.value)
+                  }
                   className="mt-1 w-full rounded-xl border border-[#eadfce] bg-white px-3 py-3 font-jakarta text-[12px] text-[#2b211e] outline-none focus:border-[#8d1900]"
                 />
               </div>
@@ -304,6 +383,10 @@ function ManagerMenuItemCard({
                     </option>
                   ))}
                 </select>
+
+                <p className="mt-1 text-[10px] text-[#8e706a]">
+                  Category changes are not saved yet.
+                </p>
               </div>
 
               <div>
@@ -319,8 +402,11 @@ function ManagerMenuItemCard({
                   <input
                     type="number"
                     min="0"
+                    step="0.01"
                     value={editPrice}
-                    onChange={(event) => setEditPrice(event.target.value)}
+                    onChange={(event) =>
+                      setEditPrice(event.target.value)
+                    }
                     className="w-full bg-transparent px-2 py-3 font-jakarta text-[12px] text-[#2b211e] outline-none"
                   />
                 </div>
@@ -344,11 +430,21 @@ function ManagerMenuItemCard({
               </div>
             </div>
 
+            {error && (
+              <p className="mt-4 text-xs text-red-700" role="alert">
+                {error}
+              </p>
+            )}
+
             <div className="mt-6 flex gap-2">
               <button
                 type="button"
-                onClick={() => setShowEditModal(false)}
-                className="flex-1 rounded-full border border-[#b9a9a2] py-3 font-jakarta text-[11px] font-semibold text-[#5a413b]"
+                onClick={() => {
+                  setShowEditModal(false);
+                  setError("");
+                }}
+                disabled={saving}
+                className="flex-1 rounded-full border border-[#b9a9a2] py-3 font-jakarta text-[11px] font-semibold text-[#5a413b] disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -356,9 +452,10 @@ function ManagerMenuItemCard({
               <button
                 type="button"
                 onClick={handleSave}
-                className="flex-1 rounded-full bg-[#8d1900] py-3 font-jakarta text-[11px] font-bold text-white"
+                disabled={saving}
+                className="flex-1 rounded-full bg-[#8d1900] py-3 font-jakarta text-[11px] font-bold text-white disabled:opacity-50"
               >
-                Save Changes
+                {saving ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </div>
@@ -369,3 +466,4 @@ function ManagerMenuItemCard({
 }
 
 export default ManagerMenuItemCard;
+
