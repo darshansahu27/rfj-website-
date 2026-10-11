@@ -1,5 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  signInWithEmailAndPassword,
+  signOut,
+} from "firebase/auth";
+import { auth } from "../firebase";
 
 function MailIcon() {
   return (
@@ -104,47 +109,92 @@ function OwnerLoginForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
+ 
+const handleSubmit = async (event) => {
+  event.preventDefault();
 
-    if (loading) {
-      return;
-    }
+  if (loading) return;
 
-    const trimmedEmail = email.trim();
+  const trimmedEmail = email.trim();
 
-    if (!trimmedEmail) {
-      setError("Please enter your email address.");
-      return;
-    }
+  if (!trimmedEmail) {
+    setError("Please enter your email address.");
+    return;
+  }
 
-    if (!trimmedEmail.includes("@")) {
-      setError("Please enter a valid email address.");
-      return;
-    }
+  if (!password) {
+    setError("Please enter your password.");
+    return;
+  }
 
-    if (!password) {
-      setError("Please enter your password.");
-      return;
-    }
+  setError("");
+  setLoading(true);
 
-    setError("");
-    setLoading(true);
+  try {
+    // Authenticate the owner with Firebase.
+    const credential = await signInWithEmailAndPassword(
+      auth,
+      trimmedEmail,
+      password
+    );
 
-    // Temporary frontend login simulation.
-    // Replace this with the real API call later.
-    setTimeout(() => {
-      setLoading(false);
+    // Get a Firebase ID token for the backend.
+    const idToken = await credential.user.getIdToken();
 
-      if (rememberMe) {
-        localStorage.setItem("rfj_owner_email", trimmedEmail);
+    // Ask the backend to verify the user's RFJ profile and role.
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/profile/me`,
+      {
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+        },
       }
+    );
 
-      // IMPORTANT:
-      // Owner Login goes to Owner Dashboard.
-      navigate("/ownerdashboard");
-    }, 1200);
-  };
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      await signOut(auth);
+      throw new Error(
+        result.message || "You are not authorized to access the owner portal."
+      );
+    }
+
+    if (result.profile?.role !== "owner") {
+      await signOut(auth);
+      throw new Error("This account is not authorized for the owner portal.");
+    }
+
+    if (rememberMe) {
+      localStorage.setItem("rfj_owner_email", trimmedEmail);
+    } else {
+      localStorage.removeItem("rfj_owner_email");
+    }
+
+    navigate("/ownerdashboard", { replace: true });
+  } catch (err) {
+    console.error("Owner login failed:", err);
+
+    if (
+      err.code === "auth/invalid-credential" ||
+      err.code === "auth/wrong-password" ||
+      err.code === "auth/user-not-found"
+    ) {
+      setError("Incorrect email or password.");
+    } else if (err.code === "auth/operation-not-allowed") {
+      setError(
+        "Email/password sign-in is disabled for this Firebase project."
+      );
+    } else if (err.code === "auth/invalid-email") {
+      setError("Please enter a valid email address.");
+    } else {
+      setError(err.message || "Login failed. Please try again.");
+    }
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <form

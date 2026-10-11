@@ -11,6 +11,12 @@ import CustomerCheckout from "./pages/customercheckout";
 import PaymentConfirmed from "./pages/paymentconfirmed";
 import PaymentFailed from "./pages/paymentfailed";
 import OrderCancelled from "./pages/ordercancelled";
+import OwnerLogin from "./pages/ownerlogin";
+import OwnerDashboard from "./pages/ownerdashboard";
+import ManagerLogin from "./pages/managerlogin";
+import ManagerDashboard from "./pages/managerdashboard";
+import ProtectedRoute from "./components/protectedroutes";
+
 
 function App() {
   return (
@@ -61,6 +67,26 @@ function App() {
           path="/ordercancelled"
           element={<OrderCancelled />}
         />
+        <Route path="/ownerlogin" element={<OwnerLogin />} />
+        <Route path="/managerlogin" element={<ManagerLogin />} />
+<Route
+  path="/ownerdashboard"
+  element={
+    <ProtectedRoute allowedRole="owner" loginPath="/ownerlogin">
+      <OwnerDashboard />
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/managerdashboard"
+  element={
+    <ProtectedRoute allowedRole="manager" loginPath="/managerlogin">
+      <ManagerDashboard />
+    </ProtectedRoute>
+  }
+/>
+    
       </Routes>
     </BrowserRouter>
   );

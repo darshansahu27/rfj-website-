@@ -1,5 +1,12 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  signInWithEmailAndPassword,
+  signOut,
+} from "firebase/auth";
+import { auth } from "../firebase";
+
 
 function VisibilityIcon({ visible }) {
   return visible ? (
@@ -102,40 +109,70 @@ function ManagerLoginForm() {
     setError(false);
   };
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
+  
+const handleSubmit = async (event) => {
+  event.preventDefault();
 
-    if (loading) return;
+  if (loading) return;
 
-    setError(false);
-    setLoading(true);
+  const trimmedEmail = email.trim();
 
-    // Temporary frontend-only credentials.
-    // Replace this with the real backend authentication later.
-    const demoEmail = "manager@test.com";
-    const demoPassword = "manager123";
+  setError(false);
 
-    setTimeout(() => {
-      const isValidLogin =
-        email.trim().toLowerCase() === demoEmail &&
-        password === demoPassword;
+  if (!trimmedEmail || !password) {
+    setError(true);
+    return;
+  }
 
-      setLoading(false);
+  setLoading(true);
 
-      if (!isValidLogin) {
-        setError(true);
-        return;
+  try {
+    const credential = await signInWithEmailAndPassword(
+      auth,
+      trimmedEmail,
+      password
+    );
+
+    const idToken = await credential.user.getIdToken();
+
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/profile/me`,
+      {
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+        },
       }
+    );
 
-      // Remember the manager email for frontend testing.
-      if (rememberMe) {
-        localStorage.setItem("rfj_manager_email", email.trim());
-      }
+    const result = await response.json();
 
-      // Successful Manager Login → Manager Dashboard
-      navigate("/managerdashboard");
-    }, 1000);
-  };
+    if (!response.ok || !result.success) {
+      await signOut(auth);
+      throw new Error(
+        result.message || "You are not authorized to access the manager portal."
+      );
+    }
+
+    if (result.profile?.role !== "manager") {
+      await signOut(auth);
+      throw new Error("This account is not authorized for the manager portal.");
+    }
+
+    if (rememberMe) {
+      localStorage.setItem("rfj_manager_email", trimmedEmail);
+    } else {
+      localStorage.removeItem("rfj_manager_email");
+    }
+
+    navigate("/managerdashboard", { replace: true });
+  } catch (err) {
+    console.error("Manager login failed:", err);
+    setError(true);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <div className="w-full max-w-md">
@@ -152,7 +189,7 @@ function ManagerLoginForm() {
         </h2>
 
         <p
-          className="max-w-[360px] text-[#6b6b6b]"
+          className="max-w-90 text-[#6b6b6b]"
           style={{
             fontFamily: '"Plus Jakarta Sans", sans-serif',
             fontSize: "14px",
