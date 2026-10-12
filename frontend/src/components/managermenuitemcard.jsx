@@ -1,7 +1,7 @@
 import { useState } from "react";
+import { auth } from "../firebase";
 
 const API_URL = "http://localhost:5000/api/menu";
-
 
 const categories = [
   "Starters",
@@ -72,11 +72,11 @@ function ManagerMenuItemCard({
 
     if (!file) return;
 
-    // Preview only. Uploading images to persistent storage
-    // will be connected separately.
+    // Preview only. Persistent image uploading is handled separately.
     setEditImage(URL.createObjectURL(file));
   };
 
+  // Save menu item changes using Firebase authentication.
   const handleSave = async () => {
     const trimmedName = editName.trim();
     const numericPrice = Number(editPrice);
@@ -100,10 +100,21 @@ function ManagerMenuItemCard({
     setMessage("");
 
     try {
+      const user = auth.currentUser;
+
+      if (!user) {
+        throw new Error(
+          "Please sign in again to manage the menu."
+        );
+      }
+
+      const idToken = await user.getIdToken();
+
       const response = await fetch(`${API_URL}/${item.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
         },
         body: JSON.stringify({
           name: trimmedName,
@@ -150,6 +161,7 @@ function ManagerMenuItemCard({
     }
   };
 
+  // Update availability using Firebase authentication.
   const handleAvailabilityChange = async () => {
     const nextAvailable = !available;
 
@@ -158,10 +170,21 @@ function ManagerMenuItemCard({
     setMessage("");
 
     try {
+      const user = auth.currentUser;
+
+      if (!user) {
+        throw new Error(
+          "Please sign in again to manage the menu."
+        );
+      }
+
+      const idToken = await user.getIdToken();
+
       const response = await fetch(`${API_URL}/${item.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
         },
         body: JSON.stringify({
           is_available: nextAvailable,
@@ -378,7 +401,10 @@ function ManagerMenuItemCard({
                   className="mt-1 w-full rounded-xl border border-[#eadfce] bg-white px-3 py-3 font-jakarta text-[12px] text-[#2b211e] outline-none focus:border-[#8d1900]"
                 >
                   {categories.map((itemCategory) => (
-                    <option key={itemCategory} value={itemCategory}>
+                    <option
+                      key={itemCategory}
+                      value={itemCategory}
+                    >
                       {itemCategory}
                     </option>
                   ))}
@@ -466,4 +492,3 @@ function ManagerMenuItemCard({
 }
 
 export default ManagerMenuItemCard;
-

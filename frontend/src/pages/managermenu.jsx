@@ -6,6 +6,7 @@ import ManagerMenuSearch from "../components/managermenusearch";
 import ManagerMenuCategories from "../components/managermenucategories";
 import ManagerMenuItemCard from "../components/managermenuitemcard";
 import ManagerAddMenuItem from "../components/manageraddmenuitem";
+import { auth } from "../firebase";
 
 const API_URL = "http://localhost:5000/api/menu";
 
@@ -20,6 +21,7 @@ function ManagerMenu() {
   const backTo = location.state?.from || "/managerdashboard";
 
   // Fetch menu items from the Express backend.
+  // Public menu browsing remains unchanged.
   const fetchMenuItems = useCallback(async () => {
     try {
       setLoading(true);
@@ -29,7 +31,9 @@ function ManagerMenu() {
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.message || "Failed to load menu items.");
+        throw new Error(
+          result.message || "Failed to load menu items."
+        );
       }
 
       const formattedItems = result.data.map((item) => ({
@@ -62,38 +66,51 @@ function ManagerMenu() {
     fetchMenuItems();
   }, [fetchMenuItems]);
 
-  // Adding new items will be connected to the API in a later step.
-  
-const handleSaveNewItem = async (item) => {
-  try {
-    setError("");
+  // Create a menu item using the authenticated manager/owner.
+  const handleSaveNewItem = async (item) => {
+    try {
+      setError("");
 
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(item),
-    });
+      const user = auth.currentUser;
 
-    const result = await response.json();
+      if (!user) {
+        throw new Error(
+          "Please sign in again to manage the menu."
+        );
+      }
 
-    if (!response.ok || !result.success) {
-      throw new Error(
-        result.message || "Failed to create menu item."
+      const idToken = await user.getIdToken();
+
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify(item),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message || "Failed to create menu item."
+        );
+      }
+
+      // Refresh the menu from Supabase after successful creation.
+      await fetchMenuItems();
+
+      // Close the form after a successful save.
+      setShowAddModal(false);
+    } catch (err) {
+      console.error("Failed to add menu item:", err);
+
+      setError(
+        err.message || "Unable to save the new menu item."
       );
     }
-
-    // Refresh the menu from Supabase.
-    await fetchMenuItems();
-
-    // Close the form after a successful save.
-    setShowAddModal(false);
-  } catch (err) {
-    console.error("Failed to add menu item:", err);
-    setError(err.message || "Unable to save the new menu item.");
-  }
-};
+  };
 
   return (
     <main className="min-h-screen bg-[#fff8f5]">
@@ -139,7 +156,10 @@ const handleSaveNewItem = async (item) => {
             </p>
           ) : (
             menuItems.map((item) => (
-              <ManagerMenuItemCard key={item.id} item={item} />
+              <ManagerMenuItemCard
+                key={item.id}
+                item={item}
+              />
             ))
           )}
         </div>
@@ -156,4 +176,3 @@ const handleSaveNewItem = async (item) => {
 }
 
 export default ManagerMenu;
-
