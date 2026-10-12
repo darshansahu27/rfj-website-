@@ -1,5 +1,8 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { auth } from "../firebase";
 
 function VisibilityIcon({ visible }) {
   return visible ? (
@@ -84,14 +87,14 @@ function ManagerLoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState("");
   const [emailValid, setEmailValid] = useState(false);
 
   const handleEmailChange = (event) => {
     const value = event.target.value;
 
     setEmail(value);
-    setError(false);
+    setError("");
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     setEmailValid(emailRegex.test(value));
@@ -99,42 +102,89 @@ function ManagerLoginForm() {
 
   const handlePasswordChange = (event) => {
     setPassword(event.target.value);
-    setError(false);
+    setError("");
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
     if (loading) return;
 
-    setError(false);
+    setError("");
     setLoading(true);
 
-    // Temporary frontend-only credentials.
-    // Replace this with the real backend authentication later.
-    const demoEmail = "manager@test.com";
-    const demoPassword = "manager123";
+    let signedInUser = null;
 
-    setTimeout(() => {
-      const isValidLogin =
-        email.trim().toLowerCase() === demoEmail &&
-        password === demoPassword;
+    try {
+      // 1. Authenticate the account with Firebase.
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email.trim(),
+        password
+      );
 
-      setLoading(false);
+      signedInUser = userCredential.user;
 
-      if (!isValidLogin) {
-        setError(true);
-        return;
+      // 2. Get a Firebase ID token.
+      const idToken = await signedInUser.getIdToken();
+
+      // 3. Verify the user's staff profile through the backend.
+      const response = await fetch(
+        "http://localhost:5000/api/profile/me",
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message || "Unable to verify your account."
+        );
       }
 
-      // Remember the manager email for frontend testing.
+      // 4. This login page is only for managers.
+      if (result.profile?.role !== "manager") {
+        throw new Error(
+          "This account is not authorized for manager access."
+        );
+      }
+
+      // 5. Remember the email only when requested.
       if (rememberMe) {
         localStorage.setItem("rfj_manager_email", email.trim());
+      } else {
+        localStorage.removeItem("rfj_manager_email");
       }
 
-      // Successful Manager Login → Manager Dashboard
+      // 6. Open the manager dashboard.
       navigate("/managerdashboard");
-    }, 1000);
+    } catch (err) {
+      console.error("Manager login failed:", err.message);
+
+      // Sign out if Firebase authenticated the account but
+      // the backend check failed or the role was unauthorized.
+      if (signedInUser) {
+        try {
+          await signOut(auth);
+        } catch (signOutError) {
+          console.error("Sign-out failed:", signOutError.message);
+        }
+      }
+
+      setError(
+        err.message === "Failed to fetch"
+          ? "Cannot connect to the RFJ backend. Please check that the server is running."
+          : err.message ||
+              "Unable to sign in. Please check your details and try again."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -188,6 +238,7 @@ function ManagerLoginForm() {
                 placeholder="Enter your registered email"
                 required
                 disabled={loading}
+                autoComplete="username"
                 className="h-11 w-full rounded-lg border border-[#8e706a]/20 bg-[#fff8f5] px-3 pr-11 font-jakarta text-sm text-[#1e1b18] outline-none placeholder:text-[#8e706a] focus:border-[#8d1900] focus:ring-2 focus:ring-[#8d1900]/10 disabled:cursor-not-allowed disabled:opacity-60"
               />
 
@@ -217,14 +268,13 @@ function ManagerLoginForm() {
                 placeholder="Enter your password"
                 required
                 disabled={loading}
+                autoComplete="current-password"
                 className="h-11 w-full rounded-lg border border-[#8e706a]/20 bg-[#fff8f5] px-3 pr-11 font-jakarta text-sm text-[#1e1b18] outline-none placeholder:text-[#8e706a] focus:border-[#8d1900] focus:ring-2 focus:ring-[#8d1900]/10 disabled:cursor-not-allowed disabled:opacity-60"
               />
 
               <button
                 type="button"
-                onClick={() =>
-                  setShowPassword((previous) => !previous)
-                }
+                onClick={() => setShowPassword((previous) => !previous)}
                 disabled={loading}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5a413b] transition-colors hover:text-[#8d1900] disabled:cursor-not-allowed disabled:opacity-60"
                 aria-label={
@@ -248,9 +298,7 @@ function ManagerLoginForm() {
               type="checkbox"
               checked={rememberMe}
               disabled={loading}
-              onChange={(event) =>
-                setRememberMe(event.target.checked)
-              }
+              onChange={(event) => setRememberMe(event.target.checked)}
               className="h-4 w-4 rounded border-[#8e706a]/30 accent-[#8d1900]"
             />
 
@@ -261,31 +309,19 @@ function ManagerLoginForm() {
 
           {/* Error */}
           {error && (
-            <div className="flex items-start gap-2 rounded-lg border border-[#ba1a1a]/20 bg-[#ffdad6] p-3 text-[#93000a]">
+            <div
+              role="alert"
+              className="flex items-start gap-2 rounded-lg border border-[#ba1a1a]/20 bg-[#ffdad6] p-3 text-[#93000a]"
+            >
               <div className="mt-0.5 shrink-0">
                 <ErrorIcon />
               </div>
 
               <p className="font-jakarta text-xs font-semibold leading-5">
-                Invalid email address or password. Please try again.
+                {error}
               </p>
             </div>
           )}
-
-          {/* Demo Login Information */}
-          <div className="rounded-lg border border-[#8d1900]/10 bg-[#fff8f5] p-3">
-            <p className="font-jakarta text-[10px] font-semibold text-[#8d1900]">
-              Frontend Testing Credentials
-            </p>
-
-            <p className="mt-1 font-jakarta text-[10px] text-[#6b6b6b]">
-              Email: manager@test.com
-            </p>
-
-            <p className="font-jakarta text-[10px] text-[#6b6b6b]">
-              Password: manager123
-            </p>
-          </div>
 
           {/* Login Button */}
           <button
@@ -299,7 +335,6 @@ function ManagerLoginForm() {
                   className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
                   aria-hidden="true"
                 />
-
                 <span>Signing In...</span>
               </>
             ) : (
@@ -313,4 +348,3 @@ function ManagerLoginForm() {
 }
 
 export default ManagerLoginForm;
-

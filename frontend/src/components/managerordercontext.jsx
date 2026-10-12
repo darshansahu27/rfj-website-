@@ -1,175 +1,210 @@
-import { createContext, useContext, useState } from "react";
+
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
+import { auth } from "../firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 const ManagerOrderContext = createContext(null);
 
-const ACTIVE_ORDERS_KEY = "rfj_active_orders";
-const COMPLETED_ORDERS_KEY = "rfj_completed_orders";
-const REJECTED_ORDERS_KEY = "rfj_rejected_orders";
+const API_URL = "http://localhost:5000/api/orders";
 
-const initialActiveOrders = [
-  {
-    orderId: "RFJ1028",
-    customer: "Darshan Sahu",
-    status: "Accepted",
-    items: "Butter Chicken x2, Paneer Tikka x1",
-    payment: "UPI @ 7:18 PM",
-    total: "₹760",
-  },
-  {
-    orderId: "RFJ1027",
-    customer: "Amit Sharma",
-    status: "Accepted",
-    items: "Veg Biryani x1",
-    payment: "Cash @ 7:05 PM",
-    total: "₹310",
-  },
-  {
-    orderId: "RFJ1026",
-    customer: "Priya Singh",
-    status: "Accepted",
-    items: "Paneer Butter Masala x1, Garlic Naan x2",
-    payment: "UPI @ 6:52 PM",
-    total: "₹480",
-  },
-];
-
-const initialCompletedOrders = [
-  {
-    orderId: "RFJ1019",
-    customer: "Rahul Mehra",
-    status: "Completed",
-    items: "Chicken Biryani x2, Butter Naan x2",
-    payment: "UPI @ 6:20 PM",
-    total: "₹620",
-  },
-  {
-    orderId: "RFJ1017",
-    customer: "Neha Sharma",
-    status: "Completed",
-    items: "Paneer Tikka x1, Garlic Naan x2",
-    payment: "Cash @ 5:45 PM",
-    total: "₹480",
-  },
-  {
-    orderId: "RFJ1014",
-    customer: "Amit Verma",
-    status: "Completed",
-    items: "Dal Makhani x1, Naan x4",
-    payment: "UPI @ 5:10 PM",
-    total: "₹440",
-  },
-];
-
-function getStoredOrders(key, fallback) {
-  try {
-    const stored = localStorage.getItem(key);
-
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch (error) {
-    console.error(`Unable to read ${key}:`, error);
-  }
-
-  return fallback;
+function formatMoney(value) {
+  return `₹${Number(value ?? 0).toLocaleString("en-IN")}`;
 }
 
-function saveOrders(key, orders) {
-  try {
-    localStorage.setItem(key, JSON.stringify(orders));
-  } catch (error) {
-    console.error(`Unable to save ${key}:`, error);
+function formatStatus(status) {
+  const labels = {
+    confirm: "Accepted",
+    preparing: "Preparing",
+    ready: "Ready",
+    "out for delivery": "Out for Delivery",
+    delivered: "Delivered",
+    cancelled: "Rejected",
+  };
+
+  return labels[status] || status || "Pending";
+}
+
+function getRelatedRecord(value) {
+  if (Array.isArray(value)) {
+    return value[0] || {};
   }
+
+  return value || {};
+}
+
+function mapOrder(order) {
+  const customer = getRelatedRecord(order.customers);
+  const address = getRelatedRecord(order.addresses);
+
+  const payments = Array.isArray(order.payments)
+    ? order.payments
+    : order.payments
+      ? [order.payments]
+      : [];
+
+  const payment = payments[0] || {};
+
+  const items = (order.order_items || [])
+    .map((item) => `${item.item_name} x${item.quantity}`)
+    .join(", ");
+
+  return {
+    id: order.id,
+    orderId: order.order_number || order.id,
+    customer: customer.phone || "Customer",
+    phone: customer.phone || "",
+    status: formatStatus(order.status),
+    rawStatus: order.status,
+    items: items || "No items",
+    payment: payment.payment_method
+      ? `${payment.payment_method}${
+          payment.payment_status
+            ? ` (${payment.payment_status})`
+            : ""
+        }`
+      : "Payment details unavailable",
+    total: formatMoney(order.total_amount),
+    address: [
+      address.address_line,
+      address.city,
+      address.state,
+      address.postal_code,
+      address.landmark,
+    ]
+      .filter(Boolean)
+      .join(", "),
+    createdAt: order.created_at,
+    raw: order,
+  };
 }
 
 function ManagerOrderProvider({ children }) {
-  const [activeOrders, setActiveOrders] = useState(() =>
-    getStoredOrders(ACTIVE_ORDERS_KEY, initialActiveOrders)
-  );
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const [completedOrders, setCompletedOrders] = useState(() =>
-    getStoredOrders(COMPLETED_ORDERS_KEY, initialCompletedOrders)
-  );
+  const getAuthHeaders = useCallback(async (includeJson = false) => {
+    const user = auth.currentUser;
 
-  const [rejectedOrders, setRejectedOrders] = useState(() =>
-    getStoredOrders(REJECTED_ORDERS_KEY, [])
-  );
+    if (!user) {
+      throw new Error("Please sign in again to manage orders.");
+    }
 
-  const rejectOrder = (orderId) => {
-    setActiveOrders((currentOrders) => {
-      const orderToReject = currentOrders.find(
-        (order) => order.orderId === orderId
-      );
+    const idToken = await user.getIdToken();
 
-      if (!orderToReject) {
-        return currentOrders;
+    return {
+      Authorization: `Bearer ${idToken}`,
+      ...(includeJson
+        ? { "Content-Type": "application/json" }
+        : {}),
+    };
+  }, []);
+
+  const fetchOrders = useCallback(async () => {
+    try {
+      setError("");
+
+      const headers = await getAuthHeaders();
+      const response = await fetch(API_URL, { headers });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message || "Failed to fetch orders."
+        );
       }
 
-      const updatedActiveOrders = currentOrders.filter(
-        (order) => order.orderId !== orderId
-      );
+      setOrders((result.data || []).map(mapOrder));
+    } catch (err) {
+      console.error("Fetch manager orders failed:", err);
+      setError(err.message || "Unable to load orders.");
+    } finally {
+      setLoading(false);
+    }
+  }, [getAuthHeaders]);
 
-      const rejectedOrder = {
-        ...orderToReject,
-        status: "Rejected",
-      };
-
-      setRejectedOrders((currentRejectedOrders) => {
-        const updatedRejectedOrders = [
-          rejectedOrder,
-          ...currentRejectedOrders.filter(
-            (order) => order.orderId !== orderId
-          ),
-        ];
-
-        saveOrders(REJECTED_ORDERS_KEY, updatedRejectedOrders);
-
-        return updatedRejectedOrders;
-      });
-
-      saveOrders(ACTIVE_ORDERS_KEY, updatedActiveOrders);
-
-      return updatedActiveOrders;
+  // Wait for Firebase to restore the user's authentication state.
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        fetchOrders();
+      } else {
+        setOrders([]);
+        setError("Please sign in again to manage orders.");
+        setLoading(false);
+      }
     });
-  };
 
-  const deliverOrder = (orderId) => {
-    setActiveOrders((currentOrders) => {
-      const orderToDeliver = currentOrders.find(
-        (order) => order.orderId === orderId
+    return unsubscribe;
+  }, [fetchOrders]);
+
+  const updateOrderStatus = async (orderId, status) => {
+    const order = orders.find(
+      (item) => item.orderId === orderId
+    );
+
+    if (!order) {
+      throw new Error("Order not found in the current list.");
+    }
+
+    try {
+      setError("");
+
+      const headers = await getAuthHeaders(true);
+
+      const response = await fetch(
+        `${API_URL}/${order.id}/status`,
+        {
+          method: "PATCH",
+          headers,
+          body: JSON.stringify({ status }),
+        }
       );
 
-      if (!orderToDeliver) {
-        return currentOrders;
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message || "Failed to update order status."
+        );
       }
 
-      const updatedActiveOrders = currentOrders.filter(
-        (order) => order.orderId !== orderId
-      );
+      await fetchOrders();
 
-      const deliveredOrder = {
-        ...orderToDeliver,
-        status: "Delivered",
-      };
-
-      setCompletedOrders((currentCompletedOrders) => {
-        const updatedCompletedOrders = [
-          deliveredOrder,
-          ...currentCompletedOrders.filter(
-            (order) => order.orderId !== orderId
-          ),
-        ];
-
-        saveOrders(COMPLETED_ORDERS_KEY, updatedCompletedOrders);
-
-        return updatedCompletedOrders;
-      });
-
-      saveOrders(ACTIVE_ORDERS_KEY, updatedActiveOrders);
-
-      return updatedActiveOrders;
-    });
+      return result.data;
+    } catch (err) {
+      console.error("Update order status failed:", err);
+      setError(err.message || "Unable to update order status.");
+      throw err;
+    }
   };
+
+  const rejectOrder = async (orderId) => {
+    await updateOrderStatus(orderId, "cancelled");
+  };
+
+  const deliverOrder = async (orderId) => {
+    await updateOrderStatus(orderId, "delivered");
+  };
+
+  const activeOrders = orders.filter(
+    (order) =>
+      !["delivered", "cancelled"].includes(order.rawStatus)
+  );
+
+  const completedOrders = orders.filter(
+    (order) => order.rawStatus === "delivered"
+  );
+
+  const rejectedOrders = orders.filter(
+    (order) => order.rawStatus === "cancelled"
+  );
 
   return (
     <ManagerOrderContext.Provider
@@ -179,6 +214,10 @@ function ManagerOrderProvider({ children }) {
         rejectedOrders,
         rejectOrder,
         deliverOrder,
+        updateOrderStatus,
+        refreshOrders: fetchOrders,
+        loading,
+        error,
       }}
     >
       {children}
