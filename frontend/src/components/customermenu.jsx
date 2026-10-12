@@ -12,12 +12,10 @@ const dishes = [
     categoryName: "Paneer Delights",
     name: "Paneer Tikka Masala",
     diet: "veg",
-    description:
-      "Cubes of grilled paneer simmered in a rich, creamy tomato gravy.",
+    description: "Cubes of grilled paneer simmered in a rich, creamy tomato gravy.",
     portion: "Regular",
     price: 280,
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCBjuOo5z-6CMGq6zCowROxZmzvTS8GCfjV2bQovjGPyPsyzGxX-gGhu291tN-r6ujzl_hFxAu-o0IkjB6jGy2gyqj55YwWe8-rnlavuRFGXqPPHKRRX0PsBT3zLH2bM9b711-SWjwTQuny-VqwvDwyA8as6ha9sAMSNJ5zBxdbpvcgLdsyq1zJ0vdlmdskqGIqaj4r8e5F3arHZ9BBWcCO4EUnHXnjI72_61fIiwapkb9sBZJMR5KI",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCBjuOo5z-6CMGq6zCowROxZmzvTS8GCfjV2bQovjGPyPsyzGxX-gGhu291tN-r6ujzl_hFxAu-o0IkjB6jGy2gyqj55YwWe8-rnlavuRFGXqPPHKRRX0PsBT3zLH2bM9b711-SWjwTQuny-VqwvDwyA8as6ha9sAMSNJ5zBxdbpvcgLdsyq1zJ0vdlmdskqGIqaj4r8e5F3arHZ9BBWcCO4EUnHXnjI72_61fIiwapkb9sBZJMR5KI",
   },
   {
     id: 2,
@@ -25,12 +23,10 @@ const dishes = [
     categoryName: "Paneer Delights",
     name: "Palak Paneer Special",
     diet: "veg",
-    description:
-      "Fresh spinach puree cooked with delicate paneer chunks.",
+    description: "Fresh spinach puree cooked with delicate paneer chunks.",
     portion: "1 Plate",
     price: 250,
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCORIZKz0xhdb93L7dr0DxKre2srL5YE90FvtR9XGSR0cIxUd3H9r_5a8ao7wEFX9-_PkC3Cb9EPp3Hvbhuq0-Vj1emfNmQp1oFeL-GWzcpbO6iUBBmE4ykKiL8cFBbu-LPiJQL7rCW0YPoSlC6yFrwximxId5C8sReZ3r5kO0rtTkHEn7ceO5tBkrjyG--3mOAyUfc_-YGltvW-Sf9fkkbdWdK_m-s1EHqnKzGPEfckSl4SUrD7UTP",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCORIZKz0xhdb93L7dr0DxKre2srL5YE90FvtR9XGSR0cIxUd3H9r_5a8ao7wEFX9-_PkC3Cb9EPp3Hvbhuq0-Vj1emfNmQp1oFeL-GWzcpbO6iUBBmE4ykKiL8cFBbu-LPiJQL7rCW0YPoSlC6yFrwximxId5C8sReZ3r5kO0rtTkHEn7ceO5tBkrjyG--3mOAyUfc_-YGltvW-Sf9fkkbdWdK_m-s1EHqnKzGPEfckSl4SUrD7UTP",
   },
   {
     id: 3,
@@ -38,12 +34,10 @@ const dishes = [
     categoryName: "Indian Varieties",
     name: "Tandoori Chicken",
     diet: "non-veg",
-    description:
-      "Juicy chicken marinated in yogurt and spices, grilled to perfection.",
+    description: "Juicy chicken marinated in yogurt and spices, grilled to perfection.",
     portion: "Half Plate",
     price: null,
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCNtILPmyxD37Kd6fXrFzE59D-CbR7p7SbNVQh3Z8C8xdhV1zVS7vK9ZTHdRMPPpUnHtPfrZCUu8JpuWi9ZqRln7UaAA3-OZqqLFH7ueDlpKaa-QeLVXnrKzsNhl9HG5i9fZZle0HmetLrFXQcjD8bFdPnkYG_LTAOvom7sDWZHFHyX8Ui0F8LS7bf8yXe8aK13x_v7ISAil7Y8SsLT5lCFTwQkqNBGX5_c6G8QEAudvY82jUlAt3Zo",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCNtILPmyxD37Kd6fXrFzE59D-CbR7p7SbNVQh3Z8C8xdhV1zVS7vK9ZTHdRMPPpUnHtPfrZCUu8JpuWi9ZqRln7UaAA3-OZqqLFH7ueDlpKaa-QeLVXnrKzsNhl9HG5i9fZZle0HmetLrFXQcjD8bFdPnkYG_LTAOvom7sDWZHFHyX8Ui0F8LS7bf8yXe8aK13x_v7ISAil7Y8SsLT5lCFTwQkqNBGX5_c6G8QEAudvY82jUlAt3Zo",
   },
   {
     id: 4,
@@ -51,12 +45,10 @@ const dishes = [
     categoryName: "Indian Varieties",
     name: "Butter Chicken",
     diet: "non-veg",
-    description:
-      "Succulent tandoori chicken pieces in our signature buttery tomato sauce.",
+    description: "Succulent tandoori chicken pieces in our signature buttery tomato sauce.",
     portion: "Full Plate",
     price: 320,
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCNtILPmyxD37Kd6fXrFzE59D-CbR7p7SbNVQh3Z8C8xdhV1zVS7vK9ZTHdRMPPpUnHtPfrZCUu8JpuWi9ZqRln7UaAA3-OZqqLFH7ueDlpKaa-QeLVXnrKzsNhl9HG5i9fZZle0HmetLrFXQcjD8bFdPnkYG_LTAOvom7sDWZHFHyX8Ui0F8LS7bf8yXe8aK13x_v7ISAil7Y8SsLT5lCFTwQkqNBGX5_c6G8QEAudvY82jUlAt3Zo",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCNtILPmyxD37Kd6fXrFzE59D-CbR7p7SbNVQh3Z8C8xdhV1zVS7vK9ZTHdRMPPpUnHtPfrZCUu8JpuWi9ZqRln7UaAA3-OZqqLFH7ueDlpKaa-QeLVXnrKzsNhl9HG5i9fZZle0HmetLrFXQcjD8bFdPnkYG_LTAOvom7sDWZHFHyX8Ui0F8LS7bf8yXe8aK13x_v7ISAil7Y8SsLT5lCFTwQkqNBGX5_c6G8QEAudvY82jUlAt3Zo",
   },
   {
     id: 5,
@@ -64,12 +56,10 @@ const dishes = [
     categoryName: "Chinese",
     name: "Veg Manchurian Dry",
     diet: "veg",
-    description:
-      "Crispy vegetable balls tossed in a spicy, tangy manchurian sauce.",
+    description: "Crispy vegetable balls tossed in a spicy, tangy manchurian sauce.",
     portion: "Half Plate",
     price: 180,
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCBjuOo5z-6CMGq6zCowROxZmzvTS8GCfjV2bQovjGPyPsyzGxX-gGhu291tN-r6ujzl_hFxAu-o0IkjB6jGy2gyqj55YwWe8-rnlavuRFGXqPPHKRRX0PsBT3zLH2bM9b711-SWjwTQuny-VqwvDwyA8as6ha9sAMSNJ5zBxdbpvcgLdsyq1zJ0vdlmdskqGIqaj4r8e5F3arHZ9BBWcCO4EUnHXnjI72_61fIiwapkb9sBZJMR5KI",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCBjuOo5z-6CMGq6zCowROxZmzvTS8GCfjV2bQovjGPyPsyzGxX-gGhu291tN-r6ujzl_hFxAu-o0IkjB6jGy2gyqj55YwWe8-rnlavuRFGXqPPHKRRX0PsBT3zLH2bM9b711-SWjwTQuny-VqwvDwyA8as6ha9sAMSNJ5zBxdbpvcgLdsyq1zJ0vdlmdskqGIqaj4r8e5F3arHZ9BBWcCO4EUnHXnjI72_61fIiwapkb9sBZJMR5KI",
   },
   {
     id: 6,
@@ -77,12 +67,10 @@ const dishes = [
     categoryName: "Chinese",
     name: "Chilli Chicken Dry",
     diet: "non-veg",
-    description:
-      "Tender chicken chunks tossed with bell peppers and spicy soy sauce.",
+    description: "Tender chicken chunks tossed with bell peppers and spicy soy sauce.",
     portion: "Full Plate",
     price: 310,
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCNtILPmyxD37Kd6fXrFzE59D-CbR7p7SbNVQh3Z8C8xdhV1zVS7vK9ZTHdRMPPpUnHtPfrZCUu8JpuWi9ZqRln7UaAA3-OZqqLFH7ueDlpKaa-QeLVXnrKzsNhl9HG5i9fZZle0HmetLrFXQcjD8bFdPnkYG_LTAOvom7sDWZHFHyX8Ui0F8LS7bf8yXe8aK13x_v7ISAil7Y8SsLT5lCFTwQkqNBGX5_c6G8QEAudvY82jUlAt3Zo",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCNtILPmyxD37Kd6fXrFzE59D-CbR7p7SbNVQh3Z8C8xdhV1zVS7vK9ZTHdRMPPpUnHtPfrZCUu8JpuWi9ZqRln7UaAA3-OZqqLFH7ueDlpKaa-QeLVXnrKzsNhl9HG5i9fZZle0HmetLrFXQcjD8bFdPnkYG_LTAOvom7sDWZHFHyX8Ui0F8LS7bf8yXe8aK13x_v7ISAil7Y8SsLT5lCFTwQkqNBGX5_c6G8QEAudvY82jUlAt3Zo",
   },
   {
     id: 7,
@@ -90,12 +78,10 @@ const dishes = [
     categoryName: "Biryani",
     name: "Chicken Biryani",
     diet: "non-veg",
-    description:
-      "Fragrant basmati rice cooked with succulent chicken and aromatic spices.",
+    description: "Fragrant basmati rice cooked with succulent chicken and aromatic spices.",
     portion: "Full Plate",
     price: 350,
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCNtILPmyxD37Kd6fXrFzE59D-CbR7p7SbNVQh3Z8C8xdhV1zVS7vK9ZTHdRMPPpUnHtPfrZCUu8JpuWi9ZqRln7UaAA3-OZqqLFH7ueDlpKaa-QeLVXnrKzsNhl9HG5i9fZZle0HmetLrFXQcjD8bFdPnkYG_LTAOvom7sDWZHFHyX8Ui0F8LS7bf8yXe8aK13x_v7ISAil7Y8SsLT5lCFTwQkqNBGX5_c6G8QEAudvY82jUlAt3Zo",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCNtILPmyxD37Kd6fXrFzE59D-CbR7p7SbNVQh3Z8C8xdhV1zVS7vK9ZTHdRMPPpUnHtPfrZCUu8JpuWi9ZqRln7UaAA3-OZqqLFH7ueDlpKaa-QeLVXnrKzsNhl9HG5i9fZZle0HmetLrFXQcjD8bFdPnkYG_LTAOvom7sDWZHFHyX8Ui0F8LS7bf8yXe8aK13x_v7ISAil7Y8SsLT5lCFTwQkqNBGX5_c6G8QEAudvY82jUlAt3Zo",
   },
   {
     id: 8,
@@ -103,12 +89,10 @@ const dishes = [
     categoryName: "Dal",
     name: "Dal Makhani",
     diet: "veg",
-    description:
-      "Black lentils slow-cooked overnight with butter and cream.",
+    description: "Black lentils slow-cooked overnight with butter and cream.",
     portion: "Full Plate",
     price: 220,
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCBjuOo5z-6CMGq6zCowROxZmzvTS8GCfjV2bQovjGPyPsyzGxX-gGhu291tN-r6ujzl_hFxAu-o0IkjB6jGy2gyqj55YwWe8-rnlavuRFGXqPPHKRRX0PsBT3zLH2bM9b711-SWjwTQuny-VqwvDwyA8as6ha9sAMSNJ5zBxdbpvcgLdsyq1zJ0vdlmdskqGIqaj4r8e5F3arHZ9BBWcCO4EUnHXnjI72_61fIiwapkb9sBZJMR5KI",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCBjuOo5z-6CMGq6zCowROxZmzvTS8GCfjV2bQovjGPyPsyzGxX-gGhu291tN-r6ujzl_hFxAu-o0IkjB6jGy2gyqj55YwWe8-rnlavuRFGXqPPHKRRX0PsBT3zLH2bM9b711-SWjwTQuny-VqwvDwyA8as6ha9sAMSNJ5zBxdbpvcgLdsyq1zJ0vdlmdskqGIqaj4r8e5F3arHZ9BBWcCO4EUnHXnjI72_61fIiwapkb9sBZJMR5KI",
   },
 ];
 
@@ -199,7 +183,6 @@ function CartIcon() {
 }
 
 function CustomerMenu() {
-  // Change 1: Read the currently signed-in customer's name from Firebase.
   const [customerName, setCustomerName] = useState("");
 
   useEffect(() => {
@@ -210,7 +193,6 @@ function CustomerMenu() {
     return unsubscribe;
   }, []);
 
-  // Change 2: Display the customer's initial instead of a hardcoded "R".
   const customerInitial = customerName
     ? customerName.charAt(0).toUpperCase()
     : "?";
@@ -219,20 +201,15 @@ function CustomerMenu() {
   const [dietFilter, setDietFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [categoryOpen, setCategoryOpen] = useState(false);
-  const [isNavigationDrawerOpen, setIsNavigationDrawerOpen] =
-    useState(false);
+  const [isNavigationDrawerOpen, setIsNavigationDrawerOpen] = useState(false);
   const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
 
+  // Cart keys are dish IDs, except Tandoori Chicken:
+  // "3-200" = Half Plate and "3-400" = Full Plate.
   const [cart, setCart] = useState({});
-
-  // Tandoori Chicken portion selection.
-  // Default is Half Plate.
-  const [tandooriPortion, setTandooriPortion] = useState(200);
-
-  // Stores the actual price used when an item was added.
-  // This prevents changing the radio selection later
-  // from changing an already-added item.
   const [cartPrices, setCartPrices] = useState({});
+
+  const [tandooriPortion, setTandooriPortion] = useState(200);
 
   const filteredDishes = useMemo(() => {
     const searchValue = search.trim().toLowerCase();
@@ -270,80 +247,73 @@ function CustomerMenu() {
   );
 
   const cartTotal = Object.entries(cart).reduce(
-    (total, [id, quantity]) => {
-      const dish = dishes.find((item) => item.id === Number(id));
+    (total, [cartKey, quantity]) => {
+      const dishId = Number(cartKey.split("-")[0]);
+      const dish = dishes.find((item) => item.id === dishId);
 
-      if (!dish) {
-        return total;
-      }
+      if (!dish) return total;
 
       const price =
-        cartPrices[id] !== undefined
-          ? cartPrices[id]
+        cartPrices[cartKey] !== undefined
+          ? cartPrices[cartKey]
           : dish.price;
 
-      if (price === null || price === undefined) {
-        return total;
-      }
+      if (price === null || price === undefined) return total;
 
       return total + price * quantity;
     },
     0
   );
 
-  const addToCart = (dishId) => {
-  const dish = dishes.find((item) => item.id === dishId);
+  const addToCart = (dishId, selectedPortionPrice) => {
+    const dish = dishes.find((item) => item.id === dishId);
 
-  if (!dish) {
-    return;
-  }
+    if (!dish) return;
 
-  const price =
-    dish.name === "Tandoori Chicken"
-      ? tandooriPortion
-      : dish.price;
+    const price =
+      dish.name === "Tandoori Chicken"
+        ? selectedPortionPrice
+        : dish.price;
 
-  if (price === null || price === undefined) {
-    return;
-  }
+    if (price === null || price === undefined) return;
 
-  const currentQuantity = cart[dishId] || 0;
+    const cartKey =
+      dish.name === "Tandoori Chicken"
+        ? `${dishId}-${price}`
+        : String(dishId);
 
-  setCart((currentCart) => ({
-    ...currentCart,
-    [dishId]: (currentCart[dishId] || 0) + 1,
-  }));
+    setCart((currentCart) => ({
+      ...currentCart,
+      [cartKey]: (currentCart[cartKey] || 0) + 1,
+    }));
 
-  if (currentQuantity === 0) {
     setCartPrices((currentPrices) => ({
       ...currentPrices,
-      [dishId]: price,
+      [cartKey]: price,
     }));
-  }
-};
+  };
 
-  const updateQuantity = (dishId, change) => {
+  const updateQuantity = (cartKey, change) => {
     setCart((currentCart) => {
-      const currentQuantity = currentCart[dishId] || 0;
+      const currentQuantity = currentCart[cartKey] || 0;
       const nextQuantity = currentQuantity + change;
       const nextCart = { ...currentCart };
 
       if (nextQuantity <= 0) {
-        delete nextCart[dishId];
+        delete nextCart[cartKey];
       } else {
-        nextCart[dishId] = nextQuantity;
+        nextCart[cartKey] = nextQuantity;
       }
 
       return nextCart;
     });
 
-    // If the item is removed completely, remove its saved price too.
-    const currentQuantity = cart[dishId] || 0;
+    const currentQuantity = cart[cartKey] || 0;
 
     if (currentQuantity + change <= 0) {
       setCartPrices((currentPrices) => {
         const nextPrices = { ...currentPrices };
-        delete nextPrices[dishId];
+        delete nextPrices[cartKey];
         return nextPrices;
       });
     }
@@ -360,12 +330,10 @@ function CustomerMenu() {
 
     if (categoryId !== "all") {
       setTimeout(() => {
-        document
-          .getElementById(categoryId)
-          ?.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-          });
+        document.getElementById(categoryId)?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
       }, 50);
     } else {
       window.scrollTo({
@@ -389,9 +357,7 @@ function CustomerMenu() {
           </span>
 
           <span
-            style={{
-              fontFamily: "'Playfair Display', serif",
-            }}
+            style={{ fontFamily: "'Playfair Display', serif" }}
             className="text-[18px] font-semibold text-[#8d1900]"
           >
             Rohit Food Junction
@@ -411,7 +377,6 @@ function CustomerMenu() {
             <MenuIcon />
           </button>
 
-          {/* Change 3: Keep the profile button connected to ProfileDrawer. */}
           <button
             type="button"
             onClick={() => {
@@ -429,10 +394,9 @@ function CustomerMenu() {
       </header>
 
       {/* Main */}
-      <main className="pb-32 pt-16">
-        {/* Sticky search + filters */}
+      <main className="pb-40 pt-16">
+        {/* Search and filters */}
         <div className="sticky top-16 z-40 space-y-3 border-b border-[#e2bfb7]/10 bg-white px-5 py-3 shadow-sm">
-          {/* Search */}
           <div className="relative">
             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#5a413b]">
               <SearchIcon />
@@ -443,13 +407,11 @@ function CustomerMenu() {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search for dishes..."
-              className="h-11 w-full rounded-full border-0 bg-[#fbf2ed] pl-11 pr-4 text-sm text-[#1e1b18] outline-none ring-0 placeholder:text-[#8e706a] focus:border-0 focus:ring-2 focus:ring-[#b32d0f]/20"
+              className="h-11 w-full rounded-full border-0 bg-[#fbf2ed] pl-11 pr-4 text-sm text-[#1e1b18] outline-none placeholder:text-[#8e706a] focus:ring-2 focus:ring-[#b32d0f]/20"
             />
           </div>
 
-          {/* Category dropdown + diet toggle */}
           <div className="flex flex-col gap-2 md:flex-row md:items-center">
-            {/* Category Dropdown */}
             <div className="relative w-full md:flex-1 md:max-w-190">
               <button
                 type="button"
@@ -460,11 +422,9 @@ function CustomerMenu() {
                   {categoryFilter === "all"
                     ? "Categories"
                     : categories.find(
-                        (category) =>
-                          category.id === categoryFilter
+                        (category) => category.id === categoryFilter
                       )?.label}
                 </span>
-
                 <span className="text-xs">
                   {categoryOpen ? "▲" : "▼"}
                 </span>
@@ -477,7 +437,7 @@ function CustomerMenu() {
                       key={category.id}
                       type="button"
                       onClick={() => selectCategory(category.id)}
-                      className="block w-full px-4 py-2.5 text-left text-sm text-[#5a413b] transition-colors hover:bg-[#fbf2ed]"
+                      className="block w-full px-4 py-2.5 text-left text-sm text-[#5a413b] hover:bg-[#fbf2ed]"
                     >
                       {category.label}
                     </button>
@@ -486,7 +446,6 @@ function CustomerMenu() {
               )}
             </div>
 
-            {/* Diet Toggle */}
             <div className="flex w-full shrink-0 justify-center md:w-auto md:justify-end">
               <div className="flex w-fit items-center overflow-hidden rounded-full border border-[#2d2926] bg-white p-0.5">
                 {[
@@ -498,7 +457,7 @@ function CustomerMenu() {
                     key={diet.id}
                     type="button"
                     onClick={() => setDietFilter(diet.id)}
-                    className={`whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] font-bold transition-all sm:px-4 ${
+                    className={`whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] font-bold sm:px-4 ${
                       dietFilter === diet.id
                         ? "bg-[#b32d0f] text-white"
                         : "bg-white text-[#2d2926]"
@@ -511,14 +470,13 @@ function CustomerMenu() {
             </div>
           </div>
 
-          {/* Category Chips */}
           <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1">
             {categories.map((category) => (
               <button
                 key={category.id}
                 type="button"
                 onClick={() => selectCategory(category.id)}
-                className={`shrink-0 rounded-full border px-4 py-1.5 text-[12px] font-semibold transition-all sm:px-5 sm:py-2 sm:text-[13px] ${
+                className={`shrink-0 rounded-full border px-4 py-1.5 text-[12px] font-semibold sm:px-5 sm:py-2 sm:text-[13px] ${
                   categoryFilter === category.id
                     ? "border-[#b32d0f] bg-[#b32d0f] text-white"
                     : "border-[#e2bfb7]/30 bg-white text-[#5a413b]"
@@ -539,9 +497,7 @@ function CustomerMenu() {
               </div>
 
               <h3
-                style={{
-                  fontFamily: "'Playfair Display', serif",
-                }}
+                style={{ fontFamily: "'Playfair Display', serif" }}
                 className="text-2xl font-bold"
               >
                 No dishes found
@@ -571,9 +527,7 @@ function CustomerMenu() {
                 className="scroll-mt-48"
               >
                 <h2
-                  style={{
-                    fontFamily: "'Playfair Display', serif",
-                  }}
+                  style={{ fontFamily: "'Playfair Display', serif" }}
                   className="mb-3 border-b border-[#e2bfb7]/20 pb-2 text-[20px] font-bold text-[#1e1b18]"
                 >
                   {category.label}
@@ -581,19 +535,23 @@ function CustomerMenu() {
 
                 <div className="space-y-3">
                   {category.dishes.map((dish) => {
-                    const quantity = cart[dish.id] || 0;
+                    const isTandoori = dish.name === "Tandoori Chicken";
 
-                    const displayedTandooriPrice =
-                      dish.name === "Tandoori Chicken"
-                        ? tandooriPortion
-                        : dish.price;
+                    const cartKey = isTandoori
+                      ? `${dish.id}-${tandooriPortion}`
+                      : String(dish.id);
+
+                    const quantity = cart[cartKey] || 0;
+
+                    const displayedPrice = isTandoori
+                      ? tandooriPortion
+                      : dish.price;
 
                     return (
                       <article
                         key={dish.id}
                         className="flex gap-3 rounded-2xl border border-[#e2bfb7]/20 bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
                       >
-                        {/* Text */}
                         <div className="flex min-w-0 flex-1 flex-col">
                           <div className="mb-1 flex items-center gap-1">
                             <span
@@ -618,9 +576,7 @@ function CustomerMenu() {
                           </div>
 
                           <h3
-                            style={{
-                              fontFamily: "'Playfair Display', serif",
-                            }}
+                            style={{ fontFamily: "'Playfair Display', serif" }}
                             className="text-[17px] font-semibold leading-tight text-[#1e1b18]"
                           >
                             {dish.name}
@@ -630,8 +586,7 @@ function CustomerMenu() {
                             {dish.description}
                           </p>
 
-                          {/* Tandoori Chicken Portion Selection */}
-                          {dish.name === "Tandoori Chicken" ? (
+                          {isTandoori ? (
                             <div className="mt-2 space-y-1 text-[11px] text-[#5a413b]">
                               <label className="flex cursor-pointer items-center gap-1">
                                 <input
@@ -639,9 +594,7 @@ function CustomerMenu() {
                                   name="tandoori-portion"
                                   value="200"
                                   checked={tandooriPortion === 200}
-                                  onChange={() =>
-                                    setTandooriPortion(200)
-                                  }
+                                  onChange={() => setTandooriPortion(200)}
                                   className="h-3 w-3 accent-[#b32d0f]"
                                 />
                                 Half Plate - ₹200
@@ -653,9 +606,7 @@ function CustomerMenu() {
                                   name="tandoori-portion"
                                   value="400"
                                   checked={tandooriPortion === 400}
-                                  onChange={() =>
-                                    setTandooriPortion(400)
-                                  }
+                                  onChange={() => setTandooriPortion(400)}
                                   className="h-3 w-3 accent-[#b32d0f]"
                                 />
                                 Full Plate - ₹400
@@ -667,17 +618,15 @@ function CustomerMenu() {
                             </p>
                           )}
 
-                          {/* Price */}
                           <div className="mt-auto pt-2">
                             <span className="text-lg font-bold text-[#b32d0f]">
-                              {displayedTandooriPrice === null
+                              {displayedPrice === null
                                 ? "₹--"
-                                : `₹${displayedTandooriPrice}`}
+                                : `₹${displayedPrice}`}
                             </span>
                           </div>
                         </div>
 
-                        {/* Image + Add */}
                         <div className="w-24 shrink-0">
                           <div className="h-24 w-24 overflow-hidden rounded-xl bg-[#f5ece7]">
                             <img
@@ -692,14 +641,15 @@ function CustomerMenu() {
                               <button
                                 type="button"
                                 disabled={
-                                  dish.name === "Tandoori Chicken"
-                                    ? !tandooriPortion
+                                  isTandoori
+                                    ? false
                                     : dish.price === null
                                 }
-                                onClick={() => addToCart(dish.id)}
+                                onClick={() =>
+                                  addToCart(dish.id, tandooriPortion)
+                                }
                                 className={`h-full w-full rounded-lg border text-xs font-bold shadow-sm transition-all active:scale-95 ${
-                                  dish.name === "Tandoori Chicken" ||
-                                  dish.price !== null
+                                  isTandoori || dish.price !== null
                                     ? "border-[#b32d0f]/30 bg-white text-[#b32d0f] hover:bg-[#b32d0f]/5"
                                     : "cursor-not-allowed border-gray-200 bg-gray-50 text-gray-400"
                                 }`}
@@ -710,10 +660,9 @@ function CustomerMenu() {
                               <div className="flex h-full items-center justify-between overflow-hidden rounded-lg bg-[#b32d0f] text-white shadow-sm">
                                 <button
                                   type="button"
-                                  onClick={() =>
-                                    updateQuantity(dish.id, -1)
-                                  }
+                                  onClick={() => updateQuantity(cartKey, -1)}
                                   className="flex h-full w-7 items-center justify-center text-lg"
+                                  aria-label={`Remove one ${dish.name}`}
                                 >
                                   −
                                 </button>
@@ -724,8 +673,11 @@ function CustomerMenu() {
 
                                 <button
                                   type="button"
-                                  onClick={() => addToCart(dish.id)}
+                                  onClick={() =>
+                                    addToCart(dish.id, tandooriPortion)
+                                  }
                                   className="flex h-full w-7 items-center justify-center text-lg"
+                                  aria-label={`Add one ${dish.name}`}
                                 >
                                   +
                                 </button>
@@ -743,43 +695,44 @@ function CustomerMenu() {
         </div>
       </main>
 
-     {/* Compact Floating Cart */}
-{cartItems > 0 && (
-  <div className="fixed bottom-0 left-0 z-50 w-full px-3 pb-3 pt-2 pointer-events-none">
-    <div className="pointer-events-auto mx-auto flex max-w-sm items-center justify-between gap-2 rounded-xl border border-[#e2bfb7]/30 bg-white/95 p-2 shadow-xl backdrop-blur-sm">
-      <div className="flex min-w-0 items-center gap-2">
-        <div className="shrink-0 text-[#5a413b]">
-          <CartIcon />
+      {/* Compact Floating Cart */}
+      {cartItems > 0 && (
+        <div className="pointer-events-none fixed bottom-0 left-0 z-50 w-full px-3 pb-3 pt-2">
+          <div className="pointer-events-auto mx-auto flex max-w-sm items-center justify-between gap-2 rounded-xl border border-[#e2bfb7]/30 bg-white/95 p-2 shadow-xl backdrop-blur-sm">
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="shrink-0 text-[#5a413b]">
+                <CartIcon />
+              </div>
+
+              <div className="flex min-w-0 flex-col">
+                <span className="text-[10px] font-medium leading-tight text-[#5a413b]">
+                  {cartItems} {cartItems === 1 ? "Item" : "Items"}
+                </span>
+
+                <span className="text-base font-bold leading-tight text-[#1e1b18]">
+                  ₹{cartTotal}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={clearCart}
+                className="shrink-0 rounded-lg border border-[#ba1a1a]/20 px-2 py-1.5 text-[10px] font-bold text-[#ba1a1a]"
+              >
+                Clear
+              </button>
+            </div>
+
+            <Link
+              to="/customercart"
+              className="shrink-0 rounded-lg bg-[#b32d0f] px-3 py-2.5 text-xs font-bold text-white shadow-sm transition-transform active:scale-95"
+            >
+              View Cart →
+            </Link>
+          </div>
         </div>
+      )}
 
-        <div className="flex min-w-0 flex-col">
-          <span className="text-[10px] font-medium leading-tight text-[#5a413b]">
-            {cartItems} {cartItems === 1 ? "Item" : "Items"}
-          </span>
-
-          <span className="text-base font-bold leading-tight text-[#1e1b18]">
-            ₹{cartTotal}
-          </span>
-        </div>
-
-        <button
-          type="button"
-          onClick={clearCart}
-          className="shrink-0 rounded-lg border border-[#ba1a1a]/20 px-2 py-1.5 text-[10px] font-bold text-[#ba1a1a]"
-        >
-          Clear
-        </button>
-      </div>
-
-      <Link
-        to="/customercart"
-        className="shrink-0 rounded-lg bg-[#b32d0f] px-3 py-2.5 text-xs font-bold text-white shadow-sm transition-transform active:scale-95"
-      >
-        View Cart →
-      </Link>
-    </div>
-  </div>
-)}
       {/* Navigation Drawer */}
       <NavigationDrawer
         isOpen={isNavigationDrawerOpen}
