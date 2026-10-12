@@ -3,8 +3,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import CustomerHome from "./pages/customerhome";
 import CustomerSignup from "./pages/customersignup";
 import CustomerLogin from "./pages/customerlogin";
-import OTPVerification from "./pages/otpverification";
-import LoginOTPVerification from "./pages/loginotpverification";
 import CustomerMenuPage from "./pages/customermenu";
 import CustomerCartPage from "./pages/customercart";
 import CustomerCheckout from "./pages/customercheckout";
@@ -26,18 +24,10 @@ function App() {
 
         <Route path="/signup" element={<CustomerSignup />} />
 
-        <Route
-          path="/otpverification"
-          element={<OTPVerification />}
-        />
-
+        
         <Route path="/login" element={<CustomerLogin />} />
 
-        <Route
-          path="/loginotpverification"
-          element={<LoginOTPVerification />}
-        />
-
+        
         <Route
           path="/menu"
           element={<CustomerMenuPage />}

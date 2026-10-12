@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../firebase";
 import NavigationDrawer from "./navigationdrawer";
 import ProfileDrawer from "./profiledrawer";
-
 
 const dishes = [
   {
@@ -18,7 +19,6 @@ const dishes = [
     image:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuCBjuOo5z-6CMGq6zCowROxZmzvTS8GCfjV2bQovjGPyPsyzGxX-gGhu291tN-r6ujzl_hFxAu-o0IkjB6jGy2gyqj55YwWe8-rnlavuRFGXqPPHKRRX0PsBT3zLH2bM9b711-SWjwTQuny-VqwvDwyA8as6ha9sAMSNJ5zBxdbpvcgLdsyq1zJ0vdlmdskqGIqaj4r8e5F3arHZ9BBWcCO4EUnHXnjI72_61fIiwapkb9sBZJMR5KI",
   },
-
   {
     id: 2,
     category: "paneer-delights",
@@ -32,7 +32,6 @@ const dishes = [
     image:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuCORIZKz0xhdb93L7dr0DxKre2srL5YE90FvtR9XGSR0cIxUd3H9r_5a8ao7wEFX9-_PkC3Cb9EPp3Hvbhuq0-Vj1emfNmQp1oFeL-GWzcpbO6iUBBmE4ykKiL8cFBbu-LPiJQL7rCW0YPoSlC6yFrwximxId5C8sReZ3r5kO0rtTkHEn7ceO5tBkrjyG--3mOAyUfc_-YGltvW-Sf9fkkbdWdK_m-s1EHqnKzGPEfckSl4SUrD7UTP",
   },
-
   {
     id: 3,
     category: "indian-varieties",
@@ -46,7 +45,6 @@ const dishes = [
     image:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuCNtILPmyxD37Kd6fXrFzE59D-CbR7p7SbNVQh3Z8C8xdhV1zVS7vK9ZTHdRMPPpUnHtPfrZCUu8JpuWi9ZqRln7UaAA3-OZqqLFH7ueDlpKaa-QeLVXnrKzsNhl9HG5i9fZZle0HmetLrFXQcjD8bFdPnkYG_LTAOvom7sDWZHFHyX8Ui0F8LS7bf8yXe8aK13x_v7ISAil7Y8SsLT5lCFTwQkqNBGX5_c6G8QEAudvY82jUlAt3Zo",
   },
-
   {
     id: 4,
     category: "indian-varieties",
@@ -60,7 +58,6 @@ const dishes = [
     image:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuCNtILPmyxD37Kd6fXrFzE59D-CbR7p7SbNVQh3Z8C8xdhV1zVS7vK9ZTHdRMPPpUnHtPfrZCUu8JpuWi9ZqRln7UaAA3-OZqqLFH7ueDlpKaa-QeLVXnrKzsNhl9HG5i9fZZle0HmetLrFXQcjD8bFdPnkYG_LTAOvom7sDWZHFHyX8Ui0F8LS7bf8yXe8aK13x_v7ISAil7Y8SsLT5lCFTwQkqNBGX5_c6G8QEAudvY82jUlAt3Zo",
   },
-
   {
     id: 5,
     category: "chinese",
@@ -74,7 +71,6 @@ const dishes = [
     image:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuCBjuOo5z-6CMGq6zCowROxZmzvTS8GCfjV2bQovjGPyPsyzGxX-gGhu291tN-r6ujzl_hFxAu-o0IkjB6jGy2gyqj55YwWe8-rnlavuRFGXqPPHKRRX0PsBT3zLH2bM9b711-SWjwTQuny-VqwvDwyA8as6ha9sAMSNJ5zBxdbpvcgLdsyq1zJ0vdlmdskqGIqaj4r8e5F3arHZ9BBWcCO4EUnHXnjI72_61fIiwapkb9sBZJMR5KI",
   },
-
   {
     id: 6,
     category: "chinese",
@@ -88,7 +84,6 @@ const dishes = [
     image:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuCNtILPmyxD37Kd6fXrFzE59D-CbR7p7SbNVQh3Z8C8xdhV1zVS7vK9ZTHdRMPPpUnHtPfrZCUu8JpuWi9ZqRln7UaAA3-OZqqLFH7ueDlpKaa-QeLVXnrKzsNhl9HG5i9fZZle0HmetLrFXQcjD8bFdPnkYG_LTAOvom7sDWZHFHyX8Ui0F8LS7bf8yXe8aK13x_v7ISAil7Y8SsLT5lCFTwQkqNBGX5_c6G8QEAudvY82jUlAt3Zo",
   },
-
   {
     id: 7,
     category: "biryani",
@@ -102,7 +97,6 @@ const dishes = [
     image:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuCNtILPmyxD37Kd6fXrFzE59D-CbR7p7SbNVQh3Z8C8xdhV1zVS7vK9ZTHdRMPPpUnHtPfrZCUu8JpuWi9ZqRln7UaAA3-OZqqLFH7ueDlpKaa-QeLVXnrKzsNhl9HG5i9fZZle0HmetLrFXQcjD8bFdPnkYG_LTAOvom7sDWZHFHyX8Ui0F8LS7bf8yXe8aK13x_v7ISAil7Y8SsLT5lCFTwQkqNBGX5_c6G8QEAudvY82jUlAt3Zo",
   },
-
   {
     id: 8,
     category: "dal",
@@ -205,16 +199,33 @@ function CartIcon() {
 }
 
 function CustomerMenu() {
+  // Change 1: Read the currently signed-in customer's name from Firebase.
+  const [customerName, setCustomerName] = useState("");
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setCustomerName(currentUser?.displayName?.trim() || "");
+    });
+
+    return unsubscribe;
+  }, []);
+
+  // Change 2: Display the customer's initial instead of a hardcoded "R".
+  const customerInitial = customerName
+    ? customerName.charAt(0).toUpperCase()
+    : "?";
+
   const [search, setSearch] = useState("");
   const [dietFilter, setDietFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [categoryOpen, setCategoryOpen] = useState(false);
-  const [isNavigationDrawerOpen, setIsNavigationDrawerOpen] = useState(false);
-const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
+  const [isNavigationDrawerOpen, setIsNavigationDrawerOpen] =
+    useState(false);
+  const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
 
   const [cart, setCart] = useState({});
 
-  // Tandoori Chicken portion selection
+  // Tandoori Chicken portion selection.
   // Default is Half Plate.
   const [tandooriPortion, setTandooriPortion] = useState(200);
 
@@ -281,40 +292,40 @@ const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
   );
 
   const addToCart = (dishId) => {
-    const dish = dishes.find((item) => item.id === dishId);
+  const dish = dishes.find((item) => item.id === dishId);
 
-    if (!dish) {
-      return;
-    }
+  if (!dish) {
+    return;
+  }
 
-    // Tandoori Chicken uses the selected portion price.
-    const price =
-      dish.name === "Tandoori Chicken"
-        ? tandooriPortion
-        : dish.price;
+  const price =
+    dish.name === "Tandoori Chicken"
+      ? tandooriPortion
+      : dish.price;
 
-    // Do not add an item without a valid price.
-    if (price === null || price === undefined) {
-      return;
-    }
+  if (price === null || price === undefined) {
+    return;
+  }
 
-    setCart((currentCart) => ({
-      ...currentCart,
-      [dishId]: (currentCart[dishId] || 0) + 1,
-    }));
+  const currentQuantity = cart[dishId] || 0;
 
-    // Save the price used for this cart item.
+  setCart((currentCart) => ({
+    ...currentCart,
+    [dishId]: (currentCart[dishId] || 0) + 1,
+  }));
+
+  if (currentQuantity === 0) {
     setCartPrices((currentPrices) => ({
       ...currentPrices,
       [dishId]: price,
     }));
-  };
+  }
+};
 
   const updateQuantity = (dishId, change) => {
     setCart((currentCart) => {
       const currentQuantity = currentCart[dishId] || 0;
       const nextQuantity = currentQuantity + change;
-
       const nextCart = { ...currentCart };
 
       if (nextQuantity <= 0) {
@@ -389,30 +400,31 @@ const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
 
         <div className="flex items-center gap-2">
           <button
-  type="button"
-  onClick={() => {
-    setIsProfileDrawerOpen(false);
-    setIsNavigationDrawerOpen(true);
-  }}
-  className="flex h-9 w-9 items-center justify-center rounded-full text-[#1e1b18]"
-  aria-label="Open menu"
->
-  <MenuIcon />
-</button>
+            type="button"
+            onClick={() => {
+              setIsProfileDrawerOpen(false);
+              setIsNavigationDrawerOpen(true);
+            }}
+            className="flex h-9 w-9 items-center justify-center rounded-full text-[#1e1b18]"
+            aria-label="Open menu"
+          >
+            <MenuIcon />
+          </button>
 
+          {/* Change 3: Keep the profile button connected to ProfileDrawer. */}
           <button
-  type="button"
-  onClick={() => {
-    setIsNavigationDrawerOpen(false);
-    setIsProfileDrawerOpen(true);
-  }}
-  className="h-9 w-9 overflow-hidden rounded-full border border-[#e2bfb7]/30 bg-[#f5ece7]"
-  aria-label="Profile"
->
-  <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-[#8d1900]">
-    R
-  </div>
-</button>
+            type="button"
+            onClick={() => {
+              setIsNavigationDrawerOpen(false);
+              setIsProfileDrawerOpen(true);
+            }}
+            className="h-9 w-9 overflow-hidden rounded-full border border-[#e2bfb7]/30 bg-[#f5ece7]"
+            aria-label="Profile"
+          >
+            <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-[#8d1900]">
+              {customerInitial}
+            </div>
+          </button>
         </div>
       </header>
 
@@ -441,9 +453,7 @@ const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
             <div className="relative w-full md:flex-1 md:max-w-190">
               <button
                 type="button"
-                onClick={() =>
-                  setCategoryOpen((open) => !open)
-                }
+                onClick={() => setCategoryOpen((open) => !open)}
                 className="flex h-10 w-full items-center justify-between rounded-full border border-[#e2bfb7]/30 bg-white px-4 text-sm text-[#5a413b]"
               >
                 <span>
@@ -466,9 +476,7 @@ const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
                     <button
                       key={category.id}
                       type="button"
-                      onClick={() =>
-                        selectCategory(category.id)
-                      }
+                      onClick={() => selectCategory(category.id)}
                       className="block w-full px-4 py-2.5 text-left text-sm text-[#5a413b] transition-colors hover:bg-[#fbf2ed]"
                     >
                       {category.label}
@@ -489,9 +497,7 @@ const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
                   <button
                     key={diet.id}
                     type="button"
-                    onClick={() =>
-                      setDietFilter(diet.id)
-                    }
+                    onClick={() => setDietFilter(diet.id)}
                     className={`whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] font-bold transition-all sm:px-4 ${
                       dietFilter === diet.id
                         ? "bg-[#b32d0f] text-white"
@@ -511,9 +517,7 @@ const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
               <button
                 key={category.id}
                 type="button"
-                onClick={() =>
-                  selectCategory(category.id)
-                }
+                onClick={() => selectCategory(category.id)}
                 className={`shrink-0 rounded-full border px-4 py-1.5 text-[12px] font-semibold transition-all sm:px-5 sm:py-2 sm:text-[13px] ${
                   categoryFilter === category.id
                     ? "border-[#b32d0f] bg-[#b32d0f] text-white"
@@ -609,16 +613,13 @@ const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
                             </span>
 
                             <span className="text-[9px] font-bold uppercase tracking-wider text-[#5a413b]">
-                              {dish.diet === "veg"
-                                ? "Veg"
-                                : "Non-Veg"}
+                              {dish.diet === "veg" ? "Veg" : "Non-Veg"}
                             </span>
                           </div>
 
                           <h3
                             style={{
-                              fontFamily:
-                                "'Playfair Display', serif",
+                              fontFamily: "'Playfair Display', serif",
                             }}
                             className="text-[17px] font-semibold leading-tight text-[#1e1b18]"
                           >
@@ -637,9 +638,7 @@ const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
                                   type="radio"
                                   name="tandoori-portion"
                                   value="200"
-                                  checked={
-                                    tandooriPortion === 200
-                                  }
+                                  checked={tandooriPortion === 200}
                                   onChange={() =>
                                     setTandooriPortion(200)
                                   }
@@ -653,9 +652,7 @@ const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
                                   type="radio"
                                   name="tandoori-portion"
                                   value="400"
-                                  checked={
-                                    tandooriPortion === 400
-                                  }
+                                  checked={tandooriPortion === 400}
                                   onChange={() =>
                                     setTandooriPortion(400)
                                   }
@@ -695,17 +692,13 @@ const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
                               <button
                                 type="button"
                                 disabled={
-                                  dish.name ===
-                                    "Tandoori Chicken"
+                                  dish.name === "Tandoori Chicken"
                                     ? !tandooriPortion
                                     : dish.price === null
                                 }
-                                onClick={() =>
-                                  addToCart(dish.id)
-                                }
+                                onClick={() => addToCart(dish.id)}
                                 className={`h-full w-full rounded-lg border text-xs font-bold shadow-sm transition-all active:scale-95 ${
-                                  dish.name ===
-                                    "Tandoori Chicken" ||
+                                  dish.name === "Tandoori Chicken" ||
                                   dish.price !== null
                                     ? "border-[#b32d0f]/30 bg-white text-[#b32d0f] hover:bg-[#b32d0f]/5"
                                     : "cursor-not-allowed border-gray-200 bg-gray-50 text-gray-400"
@@ -718,10 +711,7 @@ const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
                                 <button
                                   type="button"
                                   onClick={() =>
-                                    updateQuantity(
-                                      dish.id,
-                                      -1
-                                    )
+                                    updateQuantity(dish.id, -1)
                                   }
                                   className="flex h-full w-7 items-center justify-center text-lg"
                                 >
@@ -734,9 +724,7 @@ const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
 
                                 <button
                                   type="button"
-                                  onClick={() =>
-                                    addToCart(dish.id)
-                                  }
+                                  onClick={() => addToCart(dish.id)}
                                   className="flex h-full w-7 items-center justify-center text-lg"
                                 >
                                   +
@@ -755,90 +743,43 @@ const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
         </div>
       </main>
 
-      {/* Floating Cart */}
-      {cartItems > 0 && (
-        <div className="fixed bottom-0 left-0 z-50 w-full px-4 pb-5 pt-3">
-          <div className="mx-auto flex max-w-md items-center justify-between gap-3 rounded-2xl border border-[#e2bfb7]/30 bg-white p-3 shadow-2xl">
-            <div className="flex items-center gap-2">
-              <div className="text-[#5a413b]">
-                <CartIcon />
-              </div>
-
-              <div className="flex flex-col">
-                <span className="text-[11px] font-medium leading-none text-[#5a413b]">
-                  {cartItems}{" "}
-                  {cartItems === 1 ? "Item" : "Items"}
-                </span>
-
-                <span className="text-lg font-bold leading-tight text-[#1e1b18]">
-                  ₹{cartTotal}
-                </span>
-              </div>
-
-              <button
-                type="button"
-                onClick={clearCart}
-                className="rounded-lg border border-[#ba1a1a]/20 px-2 py-1.5 text-[10px] font-bold text-[#ba1a1a]"
-              >
-                Clear
-              </button>
-            </div>
-
-            <Link
-              to="/customercart"
-              className="flex items-center gap-2 rounded-xl bg-[#b32d0f] px-5 py-3 text-sm font-bold text-white shadow-lg transition-transform active:scale-95"
-            >
-              <span>View Cart</span>
-              <span>→</span>
-            </Link>
-          </div>
+     {/* Compact Floating Cart */}
+{cartItems > 0 && (
+  <div className="fixed bottom-0 left-0 z-50 w-full px-3 pb-3 pt-2 pointer-events-none">
+    <div className="pointer-events-auto mx-auto flex max-w-sm items-center justify-between gap-2 rounded-xl border border-[#e2bfb7]/30 bg-white/95 p-2 shadow-xl backdrop-blur-sm">
+      <div className="flex min-w-0 items-center gap-2">
+        <div className="shrink-0 text-[#5a413b]">
+          <CartIcon />
         </div>
-      )}
-    
-          {/* Floating Cart */}
-      {cartItems > 0 && (
-        <div className="fixed bottom-0 left-0 z-50 w-full px-4 pb-5 pt-3">
-          <div className="mx-auto flex max-w-md items-center justify-between gap-3 rounded-2xl border border-[#e2bfb7]/30 bg-white p-3 shadow-2xl">
 
-            <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-col">
+          <span className="text-[10px] font-medium leading-tight text-[#5a413b]">
+            {cartItems} {cartItems === 1 ? "Item" : "Items"}
+          </span>
 
-              <div className="text-[#5a413b]">
-                <CartIcon />
-              </div>
-
-              <div className="flex flex-col">
-                <span className="text-[11px] font-medium leading-none text-[#5a413b]">
-                  {cartItems}{" "}
-                  {cartItems === 1 ? "Item" : "Items"}
-                </span>
-
-                <span className="text-lg font-bold leading-tight text-[#1e1b18]">
-                  ₹{cartTotal}
-                </span>
-              </div>
-
-              <button
-                type="button"
-                onClick={clearCart}
-                className="rounded-lg border border-[#ba1a1a]/20 px-2 py-1.5 text-[10px] font-bold text-[#ba1a1a]"
-              >
-                Clear
-              </button>
-
-            </div>
-
-            <Link
-              to="/customercart"
-              className="flex items-center gap-2 rounded-xl bg-[#b32d0f] px-5 py-3 text-sm font-bold text-white shadow-lg transition-transform active:scale-95"
-            >
-              <span>View Cart</span>
-              <span>→</span>
-            </Link>
-
-          </div>
+          <span className="text-base font-bold leading-tight text-[#1e1b18]">
+            ₹{cartTotal}
+          </span>
         </div>
-      )}
 
+        <button
+          type="button"
+          onClick={clearCart}
+          className="shrink-0 rounded-lg border border-[#ba1a1a]/20 px-2 py-1.5 text-[10px] font-bold text-[#ba1a1a]"
+        >
+          Clear
+        </button>
+      </div>
+
+      <Link
+        to="/customercart"
+        className="shrink-0 rounded-lg bg-[#b32d0f] px-3 py-2.5 text-xs font-bold text-white shadow-sm transition-transform active:scale-95"
+      >
+        View Cart →
+      </Link>
+    </div>
+  </div>
+)}
       {/* Navigation Drawer */}
       <NavigationDrawer
         isOpen={isNavigationDrawerOpen}
@@ -850,7 +791,6 @@ const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
         isOpen={isProfileDrawerOpen}
         onClose={() => setIsProfileDrawerOpen(false)}
       />
-
     </div>
   );
 }
