@@ -309,20 +309,7 @@ const handleSubmit = async (event) => {
             </div>
           )}
 
-          {/* Demo Login Information */}
-          <div className="rounded-lg border border-[#8d1900]/10 bg-[#fff8f5] p-3">
-            <p className="font-jakarta text-[10px] font-semibold text-[#8d1900]">
-              Frontend Testing Credentials
-            </p>
-
-            <p className="mt-1 font-jakarta text-[10px] text-[#6b6b6b]">
-              Email: manager@test.com
-            </p>
-
-            <p className="font-jakarta text-[10px] text-[#6b6b6b]">
-              Password: manager123
-            </p>
-          </div>
+          
 
           {/* Login Button */}
           <button

@@ -14,7 +14,12 @@ import OwnerDashboard from "./pages/ownerdashboard";
 import ManagerLogin from "./pages/managerlogin";
 import ManagerDashboard from "./pages/managerdashboard";
 import ProtectedRoute from "./components/protectedroutes";
-
+import CustomerProfile from "./pages/customerprofile";
+import OwnerOrders from "./pages/ownerorders";
+import OwnerProfile from "./pages/ownerprofile";
+import ManagerMenu from "./pages/managermenu";
+import ManagerOrderProvider from "./components/managerordercontext";
+import ManagerActiveOrders from "./pages/manageractiveorders";
 
 function App() {
   return (
@@ -24,7 +29,7 @@ function App() {
 
         <Route path="/signup" element={<CustomerSignup />} />
 
-        
+        <Route path="/profile" element={<CustomerProfile />} />
         <Route path="/login" element={<CustomerLogin />} />
 
         
@@ -67,6 +72,10 @@ function App() {
     </ProtectedRoute>
   }
 />
+<Route
+  path="/customerprofile"
+  element={<CustomerProfile />}
+/>
 
 <Route
   path="/managerdashboard"
@@ -76,6 +85,48 @@ function App() {
     </ProtectedRoute>
   }
 />
+<Route
+  path="/ownerorders"
+  element={
+    <ProtectedRoute allowedRole="owner" loginPath="/ownerlogin">
+      <OwnerOrders />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/ownerprofile"
+  element={
+    <ProtectedRoute allowedRole="owner" loginPath="/ownerlogin">
+      <OwnerProfile />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/managermenu"
+  element={
+    <ProtectedRoute
+      allowedRole={["owner", "manager"]}
+      loginPath="/managerlogin"
+    >
+      <ManagerMenu />
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/manageractiveorders"
+  element={
+    <ProtectedRoute
+      allowedRole={["owner", "manager"]}
+      loginPath="/managerlogin"
+    >
+      <ManagerOrderProvider>
+        <ManagerActiveOrders />
+      </ManagerOrderProvider>
+    </ProtectedRoute>
+  }
+/>
+
     
       </Routes>
     </BrowserRouter>

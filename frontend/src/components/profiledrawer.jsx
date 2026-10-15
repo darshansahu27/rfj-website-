@@ -128,15 +128,30 @@ function ProfileDrawer({ isOpen, onClose }) {
               </p>
             )}
 
-            {user && !showAccountDetails && (
-              <button
-                type="button"
-                onClick={() => setShowAccountDetails(true)}
-                className="mt-2 rounded-full border border-[#b32d0f]/40 px-4 py-1 text-[10px] font-semibold text-[#b32d0f] transition-colors hover:bg-[#fbf2ed]"
-              >
-                Account Details
-              </button>
-            )}
+            
+{user && !showAccountDetails && (
+  <div className="mt-2 flex w-full flex-col items-center gap-2">
+    <button
+      type="button"
+      onClick={() => setShowAccountDetails(true)}
+      className="rounded-full border border-[#b32d0f]/40 px-4 py-1 text-[10px] font-semibold text-[#b32d0f] transition-colors hover:bg-[#fbf2ed]"
+    >
+      Account Details
+    </button>
+
+    <button
+      type="button"
+      onClick={() => {
+        closeDrawer();
+        navigate("/customerprofile");
+      }}
+      className="rounded-full bg-[#b32d0f] px-4 py-2 text-[11px] font-semibold text-white transition-colors hover:bg-[#8d1900]"
+    >
+      View Full Profile
+    </button>
+  </div>
+)}
+
           </div>
 
           {/* Account Details */}

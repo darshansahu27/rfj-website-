@@ -15,6 +15,8 @@ function ProtectedRoute({ allowedRole, loginPath, children }) {
         return;
       }
 
+      setLoading(true);
+
       try {
         const token = await user.getIdToken();
 
@@ -53,7 +55,11 @@ function ProtectedRoute({ allowedRole, loginPath, children }) {
     return <Navigate to={loginPath} replace />;
   }
 
-  if (userRole !== allowedRole) {
+  const permittedRoles = Array.isArray(allowedRole)
+    ? allowedRole
+    : [allowedRole];
+
+  if (!permittedRoles.includes(userRole)) {
     return <Navigate to="/" replace />;
   }
 

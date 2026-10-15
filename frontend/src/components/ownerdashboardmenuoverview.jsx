@@ -1,42 +1,47 @@
+
 import { useEffect, useState } from "react";
 
-const STORAGE_KEY = "rfj_menu_items";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 function OwnerDashboardMenuOverview() {
   const [menuItems, setMenuItems] = useState([]);
 
   useEffect(() => {
-    const loadMenuItems = () => {
-      try {
-        const savedItems = localStorage.getItem(STORAGE_KEY);
+    let isMounted = true;
 
-        if (!savedItems) {
-          setMenuItems([]);
-          return;
+    const loadMenuItems = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/menu`);
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(
+            result.message || "Unable to load menu items."
+          );
         }
 
-        const parsedItems = JSON.parse(savedItems);
-
-        if (Array.isArray(parsedItems)) {
-          setMenuItems(parsedItems);
-        } else {
-          setMenuItems([]);
+        if (isMounted) {
+          setMenuItems(
+            Array.isArray(result.items) ? result.items : []
+          );
         }
       } catch (error) {
         console.error("Unable to load menu items:", error);
-        setMenuItems([]);
+
+        if (isMounted) {
+          setMenuItems([]);
+        }
       }
     };
 
     loadMenuItems();
 
-    window.addEventListener("storage", loadMenuItems);
-
     return () => {
-      window.removeEventListener("storage", loadMenuItems);
+      isMounted = false;
     };
   }, []);
 
+  // Count vegetarian and non-vegetarian items
   const vegItems = menuItems.filter(
     (item) => item.foodType === "Veg"
   ).length;
@@ -45,6 +50,7 @@ function OwnerDashboardMenuOverview() {
     (item) => item.foodType === "Non-Veg"
   ).length;
 
+  // Count available and unavailable items
   const availableItems = menuItems.filter(
     (item) => item.available === true
   ).length;
