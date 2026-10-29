@@ -1,12 +1,12 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   signInWithEmailAndPassword,
   signOut,
+  setPersistence,
+  browserSessionPersistence,
 } from "firebase/auth";
-import { auth } from "../firebase";
-
+import { managerAuth as auth } from "../firebase";
 
 function VisibilityIcon({ visible }) {
   return visible ? (
@@ -89,7 +89,9 @@ function ManagerLoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(
+    () => Boolean(localStorage.getItem("rfj_manager_email"))
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const [emailValid, setEmailValid] = useState(false);
@@ -99,9 +101,7 @@ function ManagerLoginForm() {
 
     setEmail(value);
     setError(false);
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    setEmailValid(emailRegex.test(value));
+    setEmailValid(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()));
   };
 
   const handlePasswordChange = (event) => {
@@ -109,70 +109,76 @@ function ManagerLoginForm() {
     setError(false);
   };
 
-  
-const handleSubmit = async (event) => {
-  event.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
 
-  if (loading) return;
+    if (loading) return;
 
-  const trimmedEmail = email.trim();
+    const trimmedEmail = email.trim();
 
-  setError(false);
+    setError(false);
 
-  if (!trimmedEmail || !password) {
-    setError(true);
-    return;
-  }
+    if (!trimmedEmail || !password) {
+      setError(true);
+      return;
+    }
 
-  setLoading(true);
+    setLoading(true);
 
-  try {
-    const credential = await signInWithEmailAndPassword(
-      auth,
-      trimmedEmail,
-      password
-    );
+    try {
+      // Keep the Manager login session separate from Customer authentication.
+      await setPersistence(auth, browserSessionPersistence);
 
-    const idToken = await credential.user.getIdToken();
-
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/profile/me`,
-      {
-        headers: {
-          Authorization: `Bearer ${idToken}`,
-        },
-      }
-    );
-
-    const result = await response.json();
-
-    if (!response.ok || !result.success) {
-      await signOut(auth);
-      throw new Error(
-        result.message || "You are not authorized to access the manager portal."
+      const credential = await signInWithEmailAndPassword(
+        auth,
+        trimmedEmail,
+        password
       );
+
+      const idToken = await credential.user.getIdToken();
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/profile/me`,
+        {
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        await signOut(auth);
+
+        throw new Error(
+          result.message ||
+            "You are not authorized to access the manager portal."
+        );
+      }
+
+      if (result.profile?.role !== "manager") {
+        await signOut(auth);
+
+        throw new Error(
+          "This account is not authorized for the manager portal."
+        );
+      }
+
+      if (rememberMe) {
+        localStorage.setItem("rfj_manager_email", trimmedEmail);
+      } else {
+        localStorage.removeItem("rfj_manager_email");
+      }
+
+      navigate("/managerdashboard", { replace: true });
+    } catch (err) {
+      console.error("Manager login failed:", err);
+      setError(true);
+    } finally {
+      setLoading(false);
     }
-
-    if (result.profile?.role !== "manager") {
-      await signOut(auth);
-      throw new Error("This account is not authorized for the manager portal.");
-    }
-
-    if (rememberMe) {
-      localStorage.setItem("rfj_manager_email", trimmedEmail);
-    } else {
-      localStorage.removeItem("rfj_manager_email");
-    }
-
-    navigate("/managerdashboard", { replace: true });
-  } catch (err) {
-    console.error("Manager login failed:", err);
-    setError(true);
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   return (
     <div className="w-full max-w-md">
@@ -225,6 +231,7 @@ const handleSubmit = async (event) => {
                 placeholder="Enter your registered email"
                 required
                 disabled={loading}
+                autoComplete="username"
                 className="h-11 w-full rounded-lg border border-[#8e706a]/20 bg-[#fff8f5] px-3 pr-11 font-jakarta text-sm text-[#1e1b18] outline-none placeholder:text-[#8e706a] focus:border-[#8d1900] focus:ring-2 focus:ring-[#8d1900]/10 disabled:cursor-not-allowed disabled:opacity-60"
               />
 
@@ -254,40 +261,33 @@ const handleSubmit = async (event) => {
                 placeholder="Enter your password"
                 required
                 disabled={loading}
+                autoComplete="current-password"
                 className="h-11 w-full rounded-lg border border-[#8e706a]/20 bg-[#fff8f5] px-3 pr-11 font-jakarta text-sm text-[#1e1b18] outline-none placeholder:text-[#8e706a] focus:border-[#8d1900] focus:ring-2 focus:ring-[#8d1900]/10 disabled:cursor-not-allowed disabled:opacity-60"
               />
 
               <button
                 type="button"
-                onClick={() =>
-                  setShowPassword((previous) => !previous)
-                }
+                onClick={() => setShowPassword((previous) => !previous)}
                 disabled={loading}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5a413b] transition-colors hover:text-[#8d1900] disabled:cursor-not-allowed disabled:opacity-60"
-                aria-label={
-                  showPassword ? "Hide password" : "Show password"
-                }
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 <VisibilityIcon visible={showPassword} />
               </button>
             </div>
           </div>
 
-          {/* Remember Me */}
+          {/* Remember Me: saves the email only */}
           <label
             className={`flex items-center gap-2 ${
-              loading
-                ? "cursor-not-allowed opacity-60"
-                : "cursor-pointer"
+              loading ? "cursor-not-allowed opacity-60" : "cursor-pointer"
             }`}
           >
             <input
               type="checkbox"
               checked={rememberMe}
               disabled={loading}
-              onChange={(event) =>
-                setRememberMe(event.target.checked)
-              }
+              onChange={(event) => setRememberMe(event.target.checked)}
               className="h-4 w-4 rounded border-[#8e706a]/30 accent-[#8d1900]"
             />
 
@@ -298,7 +298,10 @@ const handleSubmit = async (event) => {
 
           {/* Error */}
           {error && (
-            <div className="flex items-start gap-2 rounded-lg border border-[#ba1a1a]/20 bg-[#ffdad6] p-3 text-[#93000a]">
+            <div
+              role="alert"
+              className="flex items-start gap-2 rounded-lg border border-[#ba1a1a]/20 bg-[#ffdad6] p-3 text-[#93000a]"
+            >
               <div className="mt-0.5 shrink-0">
                 <ErrorIcon />
               </div>
@@ -308,8 +311,6 @@ const handleSubmit = async (event) => {
               </p>
             </div>
           )}
-
-          
 
           {/* Login Button */}
           <button
@@ -323,7 +324,6 @@ const handleSubmit = async (event) => {
                   className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
                   aria-hidden="true"
                 />
-
                 <span>Signing In...</span>
               </>
             ) : (
@@ -337,4 +337,3 @@ const handleSubmit = async (event) => {
 }
 
 export default ManagerLoginForm;
-

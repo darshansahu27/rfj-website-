@@ -1,14 +1,23 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../firebase";
+import { auth, managerAuth } from "../firebase";
 
 function ProtectedRoute({ allowedRole, loginPath, children }) {
   const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const permittedRoles = Array.isArray(allowedRole)
+    ? allowedRole
+    : [allowedRole];
+
+  const usesManagerAuth = permittedRoles.includes("manager");
+  const activeAuth = usesManagerAuth ? managerAuth : auth;
+
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    setLoading(true);
+
+    const unsubscribe = onAuthStateChanged(activeAuth, async (user) => {
       if (!user) {
         setUserRole(null);
         setLoading(false);
@@ -45,19 +54,15 @@ function ProtectedRoute({ allowedRole, loginPath, children }) {
     });
 
     return unsubscribe;
-  }, []);
+  }, [activeAuth]);
 
   if (loading) {
     return <p>Checking access...</p>;
   }
 
-  if (!auth.currentUser) {
+  if (!activeAuth.currentUser) {
     return <Navigate to={loginPath} replace />;
   }
-
-  const permittedRoles = Array.isArray(allowedRole)
-    ? allowedRole
-    : [allowedRole];
 
   if (!permittedRoles.includes(userRole)) {
     return <Navigate to="/" replace />;

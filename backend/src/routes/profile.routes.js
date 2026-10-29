@@ -676,39 +676,34 @@ router.get(
 
       let address = null;
 
-      if (customer) {
-        const { data: savedAddress, error: addressError } =
-          await supabaseAdmin
-            .from("addresses")
-            .select(
-              "id, address_line, city, state, postal_code, landmark"
-            )
-            .eq("customer_id", customer.id)
-            .maybeSingle();
+if (customer) {
+  const { data: savedAddress, error: addressError } =
+  await supabaseAdmin
+    .from("addresses")
+    .select("id, address_line, landmark")
+    .eq("customer_id", profile.id)
+    .maybeSingle();
 
-        if (addressError) {
-          console.error(
-            "Customer address lookup failed:",
-            addressError.message
-          );
+  if (addressError) {
+    console.error(
+      "Customer address lookup failed:",
+      addressError.message
+    );
 
-          return res.status(500).json({
-            success: false,
-            message: "Unable to load the saved delivery address.",
-          });
-        }
+    return res.status(500).json({
+      success: false,
+      message: "Unable to load the saved delivery address.",
+    });
+  }
 
-        if (savedAddress) {
-          address = {
-            id: savedAddress.id,
-            addressLine: savedAddress.address_line,
-            city: savedAddress.city,
-            state: savedAddress.state,
-            postalCode: savedAddress.postal_code,
-            landmark: savedAddress.landmark || "",
-          };
-        }
-      }
+  if (savedAddress) {
+    address = {
+      id: savedAddress.id,
+      addressLine: savedAddress.address_line || "",
+      landmark: savedAddress.landmark || "",
+    };
+  }
+}
 
       return res.status(200).json({
         success: true,
@@ -842,5 +837,176 @@ router.post(
     }
   }
 );
+
+// --------------------------------------------------
+// PATCH: Save the logged-in customer's profile
+// PATCH /api/profile/customer
+// --------------------------------------------------
+router.patch("/customer", verifyFirebaseToken, async (req, res) => {
+  try {
+    const firebaseUid = req.firebaseUser.uid;
+
+    const fullName =
+      typeof req.body.fullName === "string"
+        ? req.body.fullName.trim()
+        : "";
+
+    const phone =
+      typeof req.body.phone === "string"
+        ? req.body.phone.trim()
+        : "";
+
+    const addressLine =
+      typeof req.body.address === "string"
+        ? req.body.address.trim()
+        : "";
+
+    // Validate the full name.
+    if (fullName.length < 2 || fullName.length > 100) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter a valid full name.",
+      });
+    }
+
+    // Validate the phone number when provided.
+    if (phone && phone.length > 20) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter a valid phone number.",
+      });
+    }
+
+    // Validate the address when provided.
+    if (
+      addressLine &&
+      (addressLine.length < 10 || addressLine.length > 500)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Delivery address must contain 10–500 characters.",
+      });
+    }
+
+    // Find the authenticated customer's profile.
+    const { data: profile, error: profileLookupError } =
+      await supabaseAdmin
+        .from("profiles")
+        .select("id, role")
+        .eq("firebase_uid", firebaseUid)
+        .maybeSingle();
+
+    if (profileLookupError) {
+      throw profileLookupError;
+    }
+
+    if (!profile || profile.role !== "customer") {
+      return res.status(403).json({
+        success: false,
+        message: "No authorized customer profile found.",
+      });
+    }
+
+    // Save the customer's name.
+    const { error: profileUpdateError } = await supabaseAdmin
+      .from("profiles")
+      .update({
+        full_name: fullName,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", profile.id);
+
+    if (profileUpdateError) {
+      throw profileUpdateError;
+    }
+
+    // Find the customer's existing record.
+    const { data: customer, error: customerLookupError } =
+      await supabaseAdmin
+        .from("customers")
+        .select("id")
+        .eq("id", profile.id)
+        .maybeSingle();
+
+    if (customerLookupError) {
+      throw customerLookupError;
+    }
+
+    // Update or create the customer's phone record.
+    if (customer) {
+      const { error: phoneUpdateError } = await supabaseAdmin
+        .from("customers")
+        .update({ phone })
+        .eq("id", profile.id);
+
+      if (phoneUpdateError) {
+        throw phoneUpdateError;
+      }
+    } else if (phone) {
+      const { error: customerInsertError } = await supabaseAdmin
+        .from("customers")
+        .insert({
+          id: profile.id,
+          phone,
+        });
+
+      if (customerInsertError) {
+        throw customerInsertError;
+      }
+    }
+
+    // Update an existing address or create one if it doesn't exist.
+    if (addressLine) {
+      const { data: existingAddress, error: addressLookupError } =
+        await supabaseAdmin
+          .from("addresses")
+          .select("id")
+          .eq("customer_id", profile.id)
+          .maybeSingle();
+
+      if (addressLookupError) {
+        throw addressLookupError;
+      }
+
+      if (existingAddress) {
+        const { error: addressUpdateError } = await supabaseAdmin
+          .from("addresses")
+          .update({
+            address_line: addressLine,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existingAddress.id);
+
+        if (addressUpdateError) {
+          throw addressUpdateError;
+        }
+      } else {
+        const { error: addressInsertError } = await supabaseAdmin
+          .from("addresses")
+          .insert({
+            id: randomUUID(),
+            customer_id: profile.id,
+            address_line: addressLine,
+          });
+
+        if (addressInsertError) {
+          throw addressInsertError;
+        }
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Customer profile updated successfully.",
+    });
+  } catch (error) {
+    console.error("Customer profile update failed:", error.message);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error.",
+    });
+  }
+});
 
 export default router;

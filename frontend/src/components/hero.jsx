@@ -1,4 +1,8 @@
 import heroImage from "../assets/hero.png";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../firebase";
 
 function ArrowIcon() {
   return (
@@ -34,22 +38,49 @@ function StarIcon() {
 }
 
 function Hero() {
+  const navigate = useNavigate();
+  const [authLoading, setAuthLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      (user) => {
+        setIsLoggedIn(Boolean(user));
+        setAuthLoading(false);
+      },
+      (error) => {
+        console.error("Unable to check authentication:", error);
+        setIsLoggedIn(false);
+        setAuthLoading(false);
+      }
+    );
+
+    return unsubscribe;
+  }, []);
+
+  const handleOurMenuClick = () => {
+    if (authLoading) return;
+
+    if (isLoggedIn) {
+      navigate("/menu");
+    } else {
+      navigate("/login");
+    }
+  };
+
   return (
     <section className="relative min-h-[85vh] overflow-hidden px-4 py-20 sm:px-6">
-      
       {/* Background */}
       <div className="absolute inset-0 z-0">
         <div className="absolute inset-0 bg-[#fff8f5]" />
-
         <div className="absolute inset-0 bg-linear-to-b from-[#fff8f5] via-transparent to-[#fff8f5]" />
       </div>
 
       {/* Main content */}
       <div className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-8 lg:grid-cols-2 lg:gap-12">
-
         {/* Left side */}
         <div className="space-y-6 text-center lg:text-left">
-
           <h1 className="font-playfair text-[28px] font-bold leading-9 text-[#8d1900] md:text-[48px] md:leading-14">
             Welcome to
             <br className="hidden md:block" />
@@ -62,21 +93,22 @@ function Hero() {
             ingredients, traditional recipes, and exceptional hospitality.
           </p>
 
-          {/* Button */}
+          {/* Authentication-aware menu button */}
           <div className="pt-2">
-            <a
-              href="menu"
-              className="inline-flex items-center gap-2 rounded-full bg-[#8d1900] px-8 py-4 font-jakarta text-[16px] font-bold text-white shadow-lg transition-all duration-200 hover:bg-[#b32d0f] hover:scale-105 active:scale-95"
+            <button
+              type="button"
+              onClick={handleOurMenuClick}
+              disabled={authLoading}
+              className="inline-flex items-center gap-2 rounded-full bg-[#8d1900] px-8 py-4 font-jakarta text-[16px] font-bold text-white shadow-lg transition-all duration-200 hover:bg-[#b32d0f] hover:scale-105 active:scale-95 disabled:cursor-wait disabled:opacity-70"
             >
-              Our Menu
+              {authLoading ? "Checking..." : "Our Menu"}
               <ArrowIcon />
-            </a>
+            </button>
           </div>
         </div>
 
         {/* Right side */}
         <div className="relative hidden lg:block">
-
           {/* Food image */}
           <div className="h-125 w-125 rotate-3 overflow-hidden rounded-3xl shadow-2xl transition-transform duration-500 hover:rotate-0">
             <img
@@ -89,7 +121,6 @@ function Hero() {
           {/* Top Rated badge */}
           <div className="absolute -bottom-8 -left-8 rounded-2xl bg-white p-4 shadow-xl">
             <div className="flex items-center gap-3">
-
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#fea13e] text-[#6b3b00]">
                 <StarIcon />
               </div>
@@ -98,16 +129,13 @@ function Hero() {
                 <p className="font-jakarta text-[16px] font-bold text-[#8d1900]">
                   Top Rated
                 </p>
-
                 <p className="font-jakarta text-xs text-[#5a413b]">
                   Best in the City
                 </p>
               </div>
-
             </div>
           </div>
         </div>
-
       </div>
     </section>
   );

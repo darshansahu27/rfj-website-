@@ -20,6 +20,11 @@ import OwnerProfile from "./pages/ownerprofile";
 import ManagerMenu from "./pages/managermenu";
 import ManagerOrderProvider from "./components/managerordercontext";
 import ManagerActiveOrders from "./pages/manageractiveorders";
+import ManagerOrders from "./pages/managerorders";
+import ManagerCompletedOrders from "./pages/managercompletedorders";
+import ManagerRejectedOrders from "./pages/managerrejectedorders";
+import ManagerDashboardDrawer from "./components/managerdashboarddrawer";
+import ManagerOrderDetails from "./pages/managerorderdetails";
 
 function App() {
   return (
@@ -80,8 +85,13 @@ function App() {
 <Route
   path="/managerdashboard"
   element={
-    <ProtectedRoute allowedRole="manager" loginPath="/managerlogin">
-      <ManagerDashboard />
+    <ProtectedRoute
+      allowedRole="manager"
+      loginPath="/managerlogin"
+    >
+      <ManagerOrderProvider>
+        <ManagerDashboard />
+      </ManagerOrderProvider>
     </ProtectedRoute>
   }
 />
@@ -112,6 +122,19 @@ function App() {
     </ProtectedRoute>
   }
 />
+<Route
+  path="/managerorders"
+  element={
+    <ProtectedRoute
+      allowedRole={["owner", "manager"]}
+      loginPath="/managerlogin"
+    >
+      <ManagerOrderProvider>
+        <ManagerOrders />
+      </ManagerOrderProvider>
+    </ProtectedRoute>
+  }
+/>
 
 <Route
   path="/manageractiveorders"
@@ -122,6 +145,33 @@ function App() {
     >
       <ManagerOrderProvider>
         <ManagerActiveOrders />
+      </ManagerOrderProvider>
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/managercompletedorders"
+  element={
+    <ProtectedRoute
+      allowedRole={["owner", "manager"]}
+      loginPath="/managerlogin"
+    >
+      <ManagerOrderProvider>
+        <ManagerCompletedOrders />
+      </ManagerOrderProvider>
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/managerrejectedorders"
+  element={
+    <ProtectedRoute
+      allowedRole={["owner", "manager"]}
+      loginPath="/managerlogin"
+    >
+      <ManagerOrderProvider>
+        <ManagerRejectedOrders />
       </ManagerOrderProvider>
     </ProtectedRoute>
   }
