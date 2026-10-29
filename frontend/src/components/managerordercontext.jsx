@@ -6,7 +6,7 @@ import {
   useEffect,
   useCallback,
 } from "react";
-import { managerAuth as auth } from "../firebase";
+import { auth } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
 const ManagerOrderContext = createContext(null);

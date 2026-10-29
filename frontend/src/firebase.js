@@ -17,15 +17,9 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// Customer and existing app authentication — unchanged.
 export const auth = getAuth(app);
 
-// Separate Firebase Auth instance for Manager sessions.
-export const managerAuth = getAuth(
-  initializeApp(firebaseConfig, "rfj-manager-auth")
-);
-
-// Persistence settings are exported for the corresponding login flows.
+// Keep these persistence options available to the login forms.
 export const customerAuthPersistence = browserLocalPersistence;
 export const managerAuthPersistence = browserSessionPersistence;
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { managerAuth as auth } from "../firebase";
+import { auth } from "../firebase";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 

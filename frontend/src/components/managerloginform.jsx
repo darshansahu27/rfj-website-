@@ -6,8 +6,8 @@ import {
   setPersistence,
   browserSessionPersistence,
 } from "firebase/auth";
-import { managerAuth as auth } from "../firebase";
 
+import { auth } from "../firebase";
 function VisibilityIcon({ visible }) {
   return visible ? (
     <svg
@@ -129,11 +129,21 @@ function ManagerLoginForm() {
       // Keep the Manager login session separate from Customer authentication.
       await setPersistence(auth, browserSessionPersistence);
 
-      const credential = await signInWithEmailAndPassword(
-        auth,
-        trimmedEmail,
-        password
-      );
+      
+await setPersistence(auth, browserSessionPersistence);
+
+const credential = await signInWithEmailAndPassword(
+  auth,
+  trimmedEmail,
+  password
+);
+
+console.log("Manager signed in:", {
+  email: credential.user.email,
+  appName: auth.app.name,
+  currentUser: auth.currentUser?.email,
+});
+
 
       const idToken = await credential.user.getIdToken();
 

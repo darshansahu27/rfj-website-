@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
-import { managerAuth as auth } from "../firebase";
+import { auth } from "../firebase";
 
 import ManagerDashboardHeader from "../components/managerdashboardheader";
 import ManagerDashboardGreeting from "../components/managerdashboardgreeting";
