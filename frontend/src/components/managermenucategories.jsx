@@ -1,41 +1,32 @@
-import { useState } from "react";
-
-const categories = [
-  "All",
-  "Starters",
-  "Main Course",
-  "Tandoor",
-  "Chinese",
-  "Biryani",
-  "Beverages",
-  "Desserts",
-];
-
-function ManagerMenuCategories() {
-  const [selectedCategory, setSelectedCategory] = useState("All");
+function ManagerMenuCategories({ value = "All", onChange = () => {} }) {
+  const categories = [
+    "All",
+    "Starters",
+    "Main Course",
+    "Tandoor",
+    "Chinese",
+    "Rice and Biryani",
+    "Breads",
+    "Beverages",
+    "Desserts",
+  ];
 
   return (
-    <div className="w-full overflow-x-auto">
-      <div className="flex min-w-max gap-2">
-        {categories.map((category) => {
-          const selected = selectedCategory === category;
-
-          return (
-            <button
-              key={category}
-              type="button"
-              onClick={() => setSelectedCategory(category)}
-              className={`rounded-full px-4 py-2 font-jakarta text-[10px] font-semibold ${
-                selected
-                  ? "bg-[#8d1900] text-white"
-                  : "bg-white text-[#5a413b] shadow-sm"
-              }`}
-            >
-              {category}
-            </button>
-          );
-        })}
-      </div>
+    <div className="flex gap-3 overflow-x-auto pb-2">
+      {categories.map((category) => (
+        <button
+          key={category}
+          type="button"
+          onClick={() => onChange(category)}
+          className={`shrink-0 rounded-full px-5 py-3 text-sm font-semibold transition-colors ${
+            value === category
+              ? "bg-[#8d1900] text-white shadow-sm"
+              : "bg-white text-[#6b514a] hover:bg-[#f7e9e5]"
+          }`}
+        >
+          {category}
+        </button>
+      ))}
     </div>
   );
 }

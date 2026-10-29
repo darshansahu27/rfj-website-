@@ -2,7 +2,7 @@ import profileRoutes from "./routes/profile.routes.js";
 import express from "express";
 import cors from "cors";
 import supabase from "./supabase.js";
-import menuRoutes from "./routes/menuRoutes.js";
+import menuRoutes from "./routes/menu.routes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 
 const app = express();

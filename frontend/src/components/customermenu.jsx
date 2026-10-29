@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-
 import { Link } from "react-router-dom";
-
 import NavigationDrawer from "./navigationdrawer";
-
 import ProfileDrawer from "./profiledrawer";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../firebase";
 
 // Fallback image for dishes without an image_url in Supabase.
 
@@ -187,6 +186,30 @@ function CartIcon() {
 function CustomerMenu() {
 
   const [dishes, setDishes] = useState([]);
+  const [profileInitials, setProfileInitials] = useState("?");
+
+useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const name = user?.displayName?.trim() || "";
+
+    if (name) {
+      setProfileInitials(
+        name
+          .split(/\s+/)
+          .map((part) => part[0])
+          .join("")
+          .slice(0, 2)
+          .toUpperCase()
+      );
+    } else if (user?.email) {
+      setProfileInitials(user.email.trim()[0].toUpperCase());
+    } else {
+      setProfileInitials("?");
+    }
+  });
+
+  return unsubscribe;
+}, []);
 
   const [menuLoading, setMenuLoading] = useState(true);
 
@@ -260,117 +283,75 @@ const [cartPrices, setCartPrices] = useState(() => {
 
   // Fetch menu items from the Express backend.
 
-  useEffect(() => {
 
+  // Fetch menu items from the Express backend.
+  useEffect(() => {
     const controller = new AbortController();
 
     async function fetchMenu() {
-
       try {
-
         setMenuLoading(true);
-
         setMenuError("");
 
         const response = await fetch(
-
           "http://localhost:5000/api/menu",
-
           { signal: controller.signal }
-
         );
 
         if (!response.ok) {
-
           throw new Error(`Menu request failed (${response.status})`);
-
         }
 
         const result = await response.json();
 
-        if (!result.success || !Array.isArray(result.data)) {
-
+        if (!result.success || !Array.isArray(result.items)) {
           throw new Error("The server returned an invalid menu response.");
-
         }
 
-        const formattedDishes = result.data
+        const formattedDishes = result.items
+          .filter((item) => item.available)
+          .map((item) => {
+            const categoryId = item.categoryId || "other";
 
-          .filter((item) => item.is_available)
-
-          .map((item) => ({
-
-            id: item.id,
-
-            categoryId: item.category_id,
-
-            category:
-
-              item.category_id || "other",
-
-            categoryName:
-
-              CATEGORY_LABELS[item.category_id] || "Other",
-
-            name: item.name,
-
-            description: item.description || "Freshly prepared dish.",
-
-            diet:
-
-              item.dietary_type === "vegetarian"
-
-                ? "veg"
-
-                : "non-veg",
-
-            price:
-
-              item.price === null || item.price === undefined
-
-                ? null
-
-                : Number(item.price),
-
-            image: item.image_url || FALLBACK_IMAGE,
-
-            isPopular: item.is_popular,
-
-          }));
+            return {
+              id: item.id,
+              categoryId,
+              category: categoryId,
+              categoryName:
+                item.category || CATEGORY_LABELS[categoryId] || "Other",
+              name: item.name,
+              description:
+                item.description || "Freshly prepared dish.",
+              diet: item.foodType === "Veg" ? "veg" : "non-veg",
+              price:
+                item.price === null || item.price === undefined
+                  ? null
+                  : Number(item.price),
+              image: item.image || FALLBACK_IMAGE,
+              isPopular: Boolean(item.isPopular),
+            };
+          });
 
         setDishes(formattedDishes);
-
       } catch (error) {
-
         if (error.name !== "AbortError") {
-
           console.error("Unable to load menu:", error);
-
           setMenuError(
-
             "We couldn't load the menu. Please check your connection and try again."
-
           );
-
         }
-
       } finally {
-
         if (!controller.signal.aborted) {
-
           setMenuLoading(false);
-
         }
-
       }
-
     }
 
     fetchMenu();
 
     return () => controller.abort();
-
   }, []);
+
 
   // Save the cart so it remains available after navigation and refresh.
   useEffect(() => {
@@ -715,11 +696,9 @@ const [cartPrices, setCartPrices] = useState(() => {
 
           >
 
-            <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-[#8d1900]">
-
-              R
-
-            </div>
+           <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-[#8d1900]">
+  {profileInitials}
+</div>
 
           </button>
 

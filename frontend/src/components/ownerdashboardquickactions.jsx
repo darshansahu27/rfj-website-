@@ -20,7 +20,7 @@ function OwnerDashboardQuickActions() {
         <button
           type="button"
           onClick={handleManageMenuClick}
-          className="flex min-h-[82px] flex-col items-center justify-center rounded-xl bg-[#c92f0f] px-3 py-3 text-white shadow-[0_2px_8px_rgba(88,42,30,0.08)] transition-transform active:scale-[0.98]"
+          className="flex min-h-20.5 flex-col items-center justify-center rounded-xl bg-[#c92f0f] px-3 py-3 text-white shadow-[0_2px_8px_rgba(88,42,30,0.08)] transition-transform active:scale-[0.98]"
         >
           <span className="font-playfair text-[17px] font-bold leading-5">
             Manage Menu
@@ -35,7 +35,7 @@ function OwnerDashboardQuickActions() {
         <button
           type="button"
           onClick={handleViewOrdersClick}
-          className="flex min-h-[82px] flex-col items-center justify-center rounded-xl bg-white px-3 py-3 text-[#5a413b] shadow-[0_2px_8px_rgba(88,42,30,0.08)] transition-transform active:scale-[0.98]"
+          className="flex min-h-20.5 flex-col items-center justify-center rounded-xl bg-white px-3 py-3 text-[#5a413b] shadow-[0_2px_8px_rgba(88,42,30,0.08)] transition-transform active:scale-[0.98]"
         >
           <span className="font-playfair text-[17px] font-bold leading-5">
             View All Orders

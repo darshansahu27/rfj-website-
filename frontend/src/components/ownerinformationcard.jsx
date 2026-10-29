@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 function PersonIcon() {
   return (
@@ -22,23 +22,58 @@ function PersonIcon() {
 function OwnerInformationCard({ profile, onSave }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(profile);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
+  // Keep the form synchronized when the profile is loaded or updated.
+  useEffect(() => {
+    if (!editing) {
+      setForm(profile);
+    }
+  }, [profile, editing]);
 
   const handleChange = (e) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+
+    setForm((previousForm) => ({
+      ...previousForm,
+      [name]: value,
+    }));
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    onSave(form);
-    setEditing(false);
+    setSaveError("");
+    setSaving(true);
+
+    try {
+      await onSave({
+        ...form,
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+      });
+
+      // Close the form only after the backend save succeeds.
+      setEditing(false);
+    } catch (error) {
+      setSaveError(
+        error.message || "Unable to save your profile. Please try again."
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCancel = () => {
     setForm(profile);
+    setSaveError("");
     setEditing(false);
+  };
+
+  const handleEdit = () => {
+    setForm(profile);
+    setSaveError("");
+    setEditing(true);
   };
 
   return (
@@ -53,7 +88,7 @@ function OwnerInformationCard({ profile, onSave }) {
           <button
             id="edit-profile-btn"
             type="button"
-            onClick={() => setEditing(true)}
+            onClick={handleEdit}
             className="font-jakarta text-[11px] font-semibold text-[#b32d0f] hover:underline"
           >
             Edit Profile
@@ -72,38 +107,51 @@ function OwnerInformationCard({ profile, onSave }) {
           <InputField
             label="Full Name"
             name="name"
-            value={form.name}
+            value={form.name || ""}
             onChange={handleChange}
+            disabled={saving}
           />
 
           <InputField
             label="Phone Number"
             name="phone"
-            value={form.phone}
+            value={form.phone || ""}
             onChange={handleChange}
             type="tel"
+            disabled={saving}
           />
 
           <InputField
-            label="Email Address"
-            name="email"
-            value={form.email}
-            onChange={handleChange}
-            type="email"
-          />
+  label="Email Address"
+  name="email"
+  value={form.email || ""}
+  type="email"
+  disabled={true}
+/>
+
+          {saveError && (
+            <p
+              role="alert"
+              className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700"
+            >
+              {saveError}
+            </p>
+          )}
 
           <div className="flex gap-3 pt-2">
             <button
               type="submit"
-              className="flex-1 rounded-full bg-[#b32d0f] py-3 font-jakarta text-sm font-bold text-white shadow-sm"
+              disabled={saving}
+              className="flex-1 rounded-full bg-[#b32d0f] py-3 font-jakarta text-sm font-bold text-white shadow-sm transition hover:bg-[#92240c] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Save Changes
+              {saving ? "Saving..." : "Save Changes"}
             </button>
 
             <button
               type="button"
               onClick={handleCancel}
-              className="flex-1 rounded-full bg-[#efe6e2] py-3 font-jakarta text-sm font-bold text-[#2b211e]"
+              disabled={saving}
+              className="flex-1 rounded-full bg-[#efe6e2] py-3 font-jakarta text-sm font-bold text-[#2b211e] disabled:cursor-not-allowed disabled:opacity-60"
             >
               Cancel
             </button>
@@ -121,8 +169,8 @@ function InfoItem({ label, value }) {
         {label}
       </p>
 
-      <p className="break-words font-jakarta text-[12px] text-[#5a413b]">
-        {value}
+      <p className="wrap-break-word font-jakarta text-[12px] text-[#5a413b]">
+        {value || "Not provided"}
       </p>
     </div>
   );
@@ -134,20 +182,27 @@ function InputField({
   value,
   onChange,
   type = "text",
+  disabled = false,
 }) {
   return (
     <div>
-      <label className="ml-1 font-jakarta text-[10px] font-bold uppercase tracking-wide text-[#8e706a]">
+      <label
+        htmlFor={`owner-profile-${name}`}
+        className="ml-1 font-jakarta text-[10px] font-bold uppercase tracking-wide text-[#8e706a]"
+      >
         {label}
       </label>
 
       <input
+        id={`owner-profile-${name}`}
         type={type}
         name={name}
         value={value}
         onChange={onChange}
         required
-        className="mt-1 w-full rounded-lg border border-[#e2bfb7] bg-[#fff8f5] px-3 py-3 font-jakarta text-sm text-[#2b211e] outline-none transition focus:border-[#b32d0f] focus:ring-2 focus:ring-[#b32d0f]/10"
+        disabled={disabled}
+        maxLength={name === "name" ? 100 : name === "phone" ? 25 : undefined}
+        className="mt-1 w-full rounded-lg border border-[#e2bfb7] bg-[#fff8f5] px-3 py-3 font-jakarta text-sm text-[#2b211e] outline-none transition focus:border-[#b32d0f] focus:ring-2 focus:ring-[#b32d0f]/10 disabled:opacity-60"
       />
     </div>
   );

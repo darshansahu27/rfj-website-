@@ -27,5 +27,11 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
+<<<<<<< HEAD
 # Firebase Admin private credentials
 backend/firebase-service-account.json
+=======
+
+
+firebase-service-account.json
+>>>>>>> feature/customer-pages

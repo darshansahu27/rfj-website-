@@ -1,9 +1,13 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { auth } from "../firebase";
+import {
+  signInWithEmailAndPassword,
+  signOut,
+  setPersistence,
+  browserSessionPersistence,
+} from "firebase/auth";
 
+import { auth } from "../firebase";
 function VisibilityIcon({ visible }) {
   return visible ? (
     <svg
@@ -85,24 +89,24 @@ function ManagerLoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(
+    () => Boolean(localStorage.getItem("rfj_manager_email"))
+  );
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(false);
   const [emailValid, setEmailValid] = useState(false);
 
   const handleEmailChange = (event) => {
     const value = event.target.value;
 
     setEmail(value);
-    setError("");
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    setEmailValid(emailRegex.test(value));
+    setError(false);
+    setEmailValid(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()));
   };
 
   const handlePasswordChange = (event) => {
     setPassword(event.target.value);
-    setError("");
+    setError(false);
   };
 
   const handleSubmit = async (event) => {
@@ -110,29 +114,42 @@ function ManagerLoginForm() {
 
     if (loading) return;
 
-    setError("");
+    const trimmedEmail = email.trim();
+
+    setError(false);
+
+    if (!trimmedEmail || !password) {
+      setError(true);
+      return;
+    }
+
     setLoading(true);
 
-    let signedInUser = null;
-
     try {
-      // 1. Authenticate the account with Firebase.
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email.trim(),
-        password
-      );
+      // Keep the Manager login session separate from Customer authentication.
+      await setPersistence(auth, browserSessionPersistence);
 
-      signedInUser = userCredential.user;
+      
+await setPersistence(auth, browserSessionPersistence);
 
-      // 2. Get a Firebase ID token.
-      const idToken = await signedInUser.getIdToken();
+const credential = await signInWithEmailAndPassword(
+  auth,
+  trimmedEmail,
+  password
+);
 
-      // 3. Verify the user's staff profile through the backend.
+console.log("Manager signed in:", {
+  email: credential.user.email,
+  appName: auth.app.name,
+  currentUser: auth.currentUser?.email,
+});
+
+
+      const idToken = await credential.user.getIdToken();
+
       const response = await fetch(
-        "http://localhost:5000/api/profile/me",
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/profile/me`,
         {
-          method: "GET",
           headers: {
             Authorization: `Bearer ${idToken}`,
           },
@@ -142,46 +159,32 @@ function ManagerLoginForm() {
       const result = await response.json();
 
       if (!response.ok || !result.success) {
+        await signOut(auth);
+
         throw new Error(
-          result.message || "Unable to verify your account."
+          result.message ||
+            "You are not authorized to access the manager portal."
         );
       }
 
-      // 4. This login page is only for managers.
       if (result.profile?.role !== "manager") {
+        await signOut(auth);
+
         throw new Error(
-          "This account is not authorized for manager access."
+          "This account is not authorized for the manager portal."
         );
       }
 
-      // 5. Remember the email only when requested.
       if (rememberMe) {
-        localStorage.setItem("rfj_manager_email", email.trim());
+        localStorage.setItem("rfj_manager_email", trimmedEmail);
       } else {
         localStorage.removeItem("rfj_manager_email");
       }
 
-      // 6. Open the manager dashboard.
-      navigate("/managerdashboard");
+      navigate("/managerdashboard", { replace: true });
     } catch (err) {
-      console.error("Manager login failed:", err.message);
-
-      // Sign out if Firebase authenticated the account but
-      // the backend check failed or the role was unauthorized.
-      if (signedInUser) {
-        try {
-          await signOut(auth);
-        } catch (signOutError) {
-          console.error("Sign-out failed:", signOutError.message);
-        }
-      }
-
-      setError(
-        err.message === "Failed to fetch"
-          ? "Cannot connect to the RFJ backend. Please check that the server is running."
-          : err.message ||
-              "Unable to sign in. Please check your details and try again."
-      );
+      console.error("Manager login failed:", err);
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -277,21 +280,17 @@ function ManagerLoginForm() {
                 onClick={() => setShowPassword((previous) => !previous)}
                 disabled={loading}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5a413b] transition-colors hover:text-[#8d1900] disabled:cursor-not-allowed disabled:opacity-60"
-                aria-label={
-                  showPassword ? "Hide password" : "Show password"
-                }
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 <VisibilityIcon visible={showPassword} />
               </button>
             </div>
           </div>
 
-          {/* Remember Me */}
+          {/* Remember Me: saves the email only */}
           <label
             className={`flex items-center gap-2 ${
-              loading
-                ? "cursor-not-allowed opacity-60"
-                : "cursor-pointer"
+              loading ? "cursor-not-allowed opacity-60" : "cursor-pointer"
             }`}
           >
             <input
@@ -318,7 +317,7 @@ function ManagerLoginForm() {
               </div>
 
               <p className="font-jakarta text-xs font-semibold leading-5">
-                {error}
+                Invalid email address or password. Please try again.
               </p>
             </div>
           )}

@@ -11,7 +11,9 @@ import { onAuthStateChanged } from "firebase/auth";
 
 const ManagerOrderContext = createContext(null);
 
-const API_URL = "http://localhost:5000/api/orders";
+const API_URL = `${
+  import.meta.env.VITE_API_URL || "http://localhost:5000"
+}/api/orders`;
 
 function formatMoney(value) {
   return `₹${Number(value ?? 0).toLocaleString("en-IN")}`;
@@ -19,10 +21,10 @@ function formatMoney(value) {
 
 function formatStatus(status) {
   const labels = {
-    confirm: "Accepted",
+    confirmed: "Confirmed",
     preparing: "Preparing",
     ready: "Ready",
-    "out for delivery": "Out for Delivery",
+    out_for_delivery: "Out for Delivery",
     delivered: "Delivered",
     cancelled: "Rejected",
   };
@@ -71,18 +73,11 @@ function mapOrder(order) {
       : "Payment details unavailable",
     total: formatMoney(order.total_amount),
     address: [
-      address.address_line,
-      address.city,
-      address.state,
-      address.postal_code,
-      address.landmark,
-    ]
-      .filter(Boolean)
-      .join(", "),
-    createdAt: order.created_at,
-    raw: order,
-  };
-}
+  order.delivery_address_line || address.address_line,
+  order.delivery_landmark || address.landmark,
+].filter(Boolean).join(", "),
+    };
+  }
 
 function ManagerOrderProvider({ children }) {
   const [orders, setOrders] = useState([]);

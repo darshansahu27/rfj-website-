@@ -1,3 +1,4 @@
+
 function SearchIcon() {
   return (
     <svg
@@ -17,7 +18,7 @@ function SearchIcon() {
   );
 }
 
-function ManagerMenuSearch() {
+function ManagerMenuSearch({ value = "", onChange = () => {} }) {
   return (
     <div className="group relative w-full">
       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8e706a] transition-colors group-focus-within:text-[#8d1900]">
@@ -26,7 +27,10 @@ function ManagerMenuSearch() {
 
       <input
         type="text"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
         placeholder="Search menu items..."
+        aria-label="Search menu items"
         className="w-full rounded-xl border-none bg-white py-4 pl-12 pr-4 font-jakarta text-[12px] text-[#1e1b18] shadow-sm outline-none placeholder:text-[#8e706a] focus:ring-2 focus:ring-[#8d1900]/20"
       />
     </div>

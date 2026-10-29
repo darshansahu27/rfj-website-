@@ -1,39 +1,48 @@
 import { useNavigate } from "react-router-dom";
+import { useManagerOrders } from "./managerordercontext";
 
 function ManagerOrderSummary() {
   const navigate = useNavigate();
 
+  const {
+    activeOrders,
+    completedOrders,
+    rejectedOrders,
+    loading,
+  } = useManagerOrders();
+
   const summaryCards = [
     {
       label: "Completed",
-      count: 27,
+      count: completedOrders.length,
       path: "/managercompletedorders",
       className: "bg-white text-[#5a413b]",
     },
     {
       label: "Active",
-      count: 8,
+      count: activeOrders.length,
       path: "/manageractiveorders",
       className: "bg-[#c92f0f] text-white",
       arrow: true,
     },
     {
       label: "Rejected",
-      count: 2,
+      count: rejectedOrders.length,
       path: "/managerrejectedorders",
       className: "bg-white text-[#5a413b]",
     },
   ];
 
   return (
-    <section className="mx-auto w-full max-w-[600px] px-4 pt-5">
+    <section className="mx-auto w-full max-w-150 px-4 pt-5">
       <div className="grid grid-cols-3 gap-2">
         {summaryCards.map((card) => (
           <button
             key={card.label}
             type="button"
             onClick={() => navigate(card.path)}
-            className={`flex h-[72px] items-center justify-center rounded-xl shadow-sm transition-transform active:scale-[0.97] ${card.className}`}
+            disabled={loading}
+            className={`flex h-18 items-center justify-center rounded-xl shadow-sm transition-transform active:scale-[0.97] disabled:opacity-60 ${card.className}`}
           >
             <div className="flex flex-col items-center">
               <span
@@ -43,7 +52,7 @@ function ManagerOrderSummary() {
                     : ""
                 }`}
               >
-                {card.count}
+                {loading ? "—" : card.count}
               </span>
 
               <span className="mt-0.5 font-jakarta text-[10px] font-semibold leading-4">

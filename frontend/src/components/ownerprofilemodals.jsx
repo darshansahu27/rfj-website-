@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { auth } from "../firebase";
 
 function OwnerProfileModals({
   imageOpen,
@@ -14,63 +15,198 @@ function OwnerProfileModals({
   const cameraRef = useRef(null);
 
   const [managerForm, setManagerForm] = useState({
-    name: manager.name,
-    email: manager.email,
+    name: manager?.name || "",
+    email: manager?.email || "",
     password: "",
     confirmPassword: "",
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [savingManager, setSavingManager] = useState(false);
 
-  const handleImage = (e) => {
-    const file = e.target.files?.[0];
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageError, setImageError] = useState("");
 
-    if (file) {
-      onSaveImage(URL.createObjectURL(file));
-      onClose("image");
+  // Refresh the form when the modal opens or manager data changes.
+  useEffect(() => {
+    if (managerOpen) {
+      setManagerForm({
+        name: manager?.name || "",
+        email: manager?.email || "",
+        password: "",
+        confirmPassword: "",
+      });
+      setError("");
+      setShowPassword(false);
+    }
+  }, [managerOpen, manager?.name, manager?.email]);
+
+  const handleImage = async (event) => {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      setImageError("Please select a JPEG, PNG, or WebP image.");
+      event.target.value = "";
+      return;
     }
 
-    e.target.value = "";
+    if (file.size > 5 * 1024 * 1024) {
+      setImageError("Image must be 5 MB or smaller.");
+      event.target.value = "";
+      return;
+    }
+
+    setUploadingImage(true);
+    setImageError("");
+
+    try {
+      const user = auth.currentUser;
+
+      if (!user) {
+        throw new Error(
+          "Please log in again to update your profile photo."
+        );
+      }
+
+      const token = await user.getIdToken();
+      const formData = new FormData();
+
+      formData.append("avatar", file);
+
+      const apiUrl =
+        import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+      const response = await fetch(
+        `${apiUrl}/api/profile/owner/avatar`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message || "Unable to upload profile photo."
+        );
+      }
+
+      if (!result.avatarUrl) {
+        throw new Error(
+          "The server did not return the uploaded image URL."
+        );
+      }
+
+      onSaveImage(result.avatarUrl);
+      onClose("image");
+    } catch (uploadError) {
+      console.error(
+        "Owner profile photo upload failed:",
+        uploadError
+      );
+
+      setImageError(
+        uploadError.message || "Unable to upload profile photo."
+      );
+    } finally {
+      setUploadingImage(false);
+      event.target.value = "";
+    }
   };
 
-  const handleManagerChange = (e) => {
-    setManagerForm({
-      ...managerForm,
-      [e.target.name]: e.target.value,
-    });
+  const handleManagerChange = (event) => {
+    const { name, value } = event.target;
+
+    setManagerForm((current) => ({
+      ...current,
+      [name]: value,
+    }));
   };
 
-  const handleManagerSave = (e) => {
-    e.preventDefault();
+  const handleManagerSave = async (event) => {
+    event.preventDefault();
 
-    if (
-      managerForm.password &&
-      managerForm.password !== managerForm.confirmPassword
-    ) {
+    if (savingManager) return;
+
+    const name = managerForm.name.trim();
+    const email = managerForm.email.trim();
+    const password = managerForm.password;
+    const confirmPassword = managerForm.confirmPassword;
+
+    if (name.length < 2 || name.length > 100) {
+      setError("Manager name must be between 2 and 100 characters.");
+      return;
+    }
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("Please enter a valid manager email address.");
+      return;
+    }
+
+    if (password && password.length < 6) {
+      setError("The new password must contain at least 6 characters.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
     }
 
-    if (!managerForm.password) {
-      setError("Please enter a new password.");
-      return;
-    }
-
-    onSaveManager({
-      name: managerForm.name,
-      email: managerForm.email,
-    });
-
     setError("");
-    onClose("manager");
+    setSavingManager(true);
+
+    try {
+      // The parent handler calls the protected backend endpoint.
+      await onSaveManager({
+        name,
+        email,
+        password,
+      });
+
+      setManagerForm({
+        name,
+        email,
+        password: "",
+        confirmPassword: "",
+      });
+
+      setError("");
+      onClose("manager");
+    } catch (saveError) {
+      setError(
+        saveError.message || "Unable to update manager credentials."
+      );
+    } finally {
+      setSavingManager(false);
+    }
   };
 
   return (
     <>
       {/* Profile Image Modal */}
       {imageOpen && (
-        <Modal onClose={() => onClose("image")}>
+        <Modal
+          onClose={() => {
+            if (!uploadingImage) {
+              setImageError("");
+              onClose("image");
+            }
+          }}
+        >
           <div className="mb-6 text-center">
             <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-[#f5e9e4] text-[#8d1900]">
               <CameraIcon />
@@ -83,52 +219,88 @@ function OwnerProfileModals({
             <p className="mt-1.5 font-jakarta text-xs text-[#8e706a]">
               Choose an option to update your profile photo
             </p>
+
+            {uploadingImage && (
+              <p
+                role="status"
+                className="mt-3 text-sm text-[#8d1900]"
+              >
+                Uploading your photo...
+              </p>
+            )}
+
+            {imageError && (
+              <p
+                role="alert"
+                className="mt-3 text-sm text-red-600"
+              >
+                {imageError}
+              </p>
+            )}
           </div>
 
           <input
             ref={galleryRef}
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp"
             className="hidden"
             onChange={handleImage}
+            disabled={uploadingImage}
           />
 
           <input
             ref={cameraRef}
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp"
             capture="user"
             className="hidden"
             onChange={handleImage}
+            disabled={uploadingImage}
           />
 
           <div className="space-y-3">
             <PhotoOption
               title="Upload Image"
               description="Upload a photo from your device"
-              onClick={() => galleryRef.current?.click()}
+              onClick={() => {
+                setImageError("");
+                galleryRef.current?.click();
+              }}
               icon={<UploadIcon />}
               primary
+              disabled={uploadingImage}
             />
 
             <PhotoOption
               title="Choose from Gallery"
               description="Select an existing photo"
-              onClick={() => galleryRef.current?.click()}
+              onClick={() => {
+                setImageError("");
+                galleryRef.current?.click();
+              }}
               icon={<GalleryIcon />}
+              disabled={uploadingImage}
             />
 
             <PhotoOption
               title="Take Photo"
               description="Take a new photo with your camera"
-              onClick={() => cameraRef.current?.click()}
+              onClick={() => {
+                setImageError("");
+                cameraRef.current?.click();
+              }}
               icon={<CameraIcon />}
+              disabled={uploadingImage}
             />
 
             <button
               type="button"
-              onClick={() => onClose("image")}
-              className="mt-2 w-full rounded-xl py-3 font-jakarta text-sm font-bold text-[#8e706a] transition hover:bg-[#f5e9e4]"
+              disabled={uploadingImage}
+              onClick={() => {
+                setImageError("");
+                onClose("image");
+              }}
+              className="mt-2 w-full rounded-xl py-3 font-jakarta text-sm font-bold text-[#8e706a] transition hover:bg-[#f5e9e4] disabled:cursor-not-allowed disabled:opacity-50"
             >
               Cancel
             </button>
@@ -138,10 +310,24 @@ function OwnerProfileModals({
 
       {/* Manager Credentials Modal */}
       {managerOpen && (
-        <Modal onClose={() => onClose("manager")} bottom>
-          <h3 className="mb-5 font-playfair text-xl font-bold text-[#8d1900]">
-            Manager Credentials
+        <Modal
+          onClose={() => {
+            if (!savingManager) {
+              setError("");
+              onClose("manager");
+            }
+          }}
+          bottom
+        >
+          <h3 className="mb-2 font-playfair text-xl font-bold text-[#8d1900]">
+            Edit Manager Credentials
           </h3>
+
+          <p className="mb-5 text-xs leading-5 text-[#8e706a]">
+            Changes will apply to the existing manager account.
+            Leave the new password fields blank to keep the current
+            password.
+          </p>
 
           <form onSubmit={handleManagerSave} className="space-y-4">
             <ModalInput
@@ -149,6 +335,7 @@ function OwnerProfileModals({
               name="name"
               value={managerForm.name}
               onChange={handleManagerChange}
+              disabled={savingManager}
             />
 
             <ModalInput
@@ -157,30 +344,39 @@ function OwnerProfileModals({
               type="email"
               value={managerForm.email}
               onChange={handleManagerChange}
+              disabled={savingManager}
             />
 
             <div>
-              <label className="font-jakarta text-[10px] font-bold uppercase tracking-wide text-[#8e706a]">
-                New Password
+              <label
+                htmlFor="manager-new-password"
+                className="font-jakarta text-[10px] font-bold uppercase tracking-wide text-[#8e706a]"
+              >
+                New Password (Optional)
               </label>
 
               <div className="relative mt-1">
                 <input
-                  required
+                  id="manager-new-password"
                   minLength={6}
                   name="password"
+                  autoComplete="new-password"
                   type={showPassword ? "text" : "password"}
                   value={managerForm.password}
                   onChange={handleManagerChange}
-                  placeholder="Enter new password"
-                  className="w-full rounded-xl border border-[#e2bfb7] bg-white px-4 py-3 pr-12 text-sm outline-none focus:border-[#b32d0f]"
+                  placeholder="Leave blank to keep current password"
+                  disabled={savingManager}
+                  className="w-full rounded-xl border border-[#e2bfb7] bg-white px-4 py-3 pr-12 text-sm outline-none focus:border-[#b32d0f] disabled:opacity-60"
                 />
 
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8e706a]"
-                  aria-label="Toggle password visibility"
+                  onClick={() => setShowPassword((value) => !value)}
+                  disabled={savingManager}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8e706a] disabled:opacity-50"
+                  aria-label={
+                    showPassword ? "Hide password" : "Show password"
+                  }
                 >
                   {showPassword ? <EyeOffIcon /> : <EyeIcon />}
                 </button>
@@ -188,29 +384,42 @@ function OwnerProfileModals({
             </div>
 
             <ModalInput
-              label="Confirm Password"
+              label="Confirm New Password"
               name="confirmPassword"
+              autoComplete="new-password"
               type={showPassword ? "text" : "password"}
               value={managerForm.confirmPassword}
               onChange={handleManagerChange}
+              disabled={savingManager}
+              required={Boolean(managerForm.password)}
             />
 
             {error && (
-              <p className="text-sm text-red-600">{error}</p>
+              <p
+                role="alert"
+                className="rounded-lg bg-[#fff0ec] px-3 py-2 text-sm text-red-700"
+              >
+                {error}
+              </p>
             )}
 
             <div className="flex gap-3 pt-2">
               <button
                 type="submit"
-                className="flex-1 rounded-full bg-[#b32d0f] py-3 text-sm font-bold text-white"
+                disabled={savingManager}
+                className="flex-1 rounded-full bg-[#b32d0f] py-3 text-sm font-bold text-white transition hover:bg-[#9f270d] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Save Changes
+                {savingManager ? "Saving..." : "Save Changes"}
               </button>
 
               <button
                 type="button"
-                onClick={() => onClose("manager")}
-                className="flex-1 rounded-full bg-[#efe6e2] py-3 text-sm font-bold text-[#2b211e]"
+                disabled={savingManager}
+                onClick={() => {
+                  setError("");
+                  onClose("manager");
+                }}
+                className="flex-1 rounded-full bg-[#efe6e2] py-3 text-sm font-bold text-[#2b211e] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Cancel
               </button>
@@ -261,7 +470,7 @@ function OwnerProfileModals({
 
 function Modal({ children, onClose, bottom = false }) {
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1e1b18]/40 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-100 flex items-center justify-center bg-[#1e1b18]/40 p-4 backdrop-blur-sm">
       <button
         type="button"
         aria-label="Close modal"
@@ -270,8 +479,10 @@ function Modal({ children, onClose, bottom = false }) {
       />
 
       <div
-        className={`relative z-10 w-full max-w-md rounded-3xl bg-[#fff8f5] p-6 shadow-2xl ${
-          bottom ? "mt-auto rounded-b-none sm:mt-0 sm:rounded-3xl" : ""
+        className={`relative z-10 max-h-[90vh] w-full max-w-md overflow-y-auto rounded-3xl bg-[#fff8f5] p-6 shadow-2xl ${
+          bottom
+            ? "mt-auto rounded-b-none sm:mt-0 sm:rounded-3xl"
+            : ""
         }`}
       >
         {children}
@@ -286,12 +497,14 @@ function PhotoOption({
   icon,
   onClick,
   primary = false,
+  disabled = false,
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`group flex w-full items-center gap-4 rounded-2xl border px-4 py-3.5 text-left transition-all duration-200 active:scale-[0.99] ${
+      disabled={disabled}
+      className={`group flex w-full items-center gap-4 rounded-2xl border px-4 py-3.5 text-left transition-all duration-200 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 ${
         primary
           ? "border-[#b32d0f] bg-[#b32d0f] text-white hover:bg-[#9f270d]"
           : "border-[#eadbd5] bg-white text-[#2b211e] hover:border-[#c9a79b] hover:bg-[#fdf7f4]"
@@ -338,20 +551,29 @@ function ModalInput({
   value,
   onChange,
   type = "text",
+  disabled = false,
+  required = true,
+  autoComplete,
 }) {
   return (
     <div>
-      <label className="font-jakarta text-[10px] font-bold uppercase tracking-wide text-[#8e706a]">
+      <label
+        htmlFor={`manager-${name}`}
+        className="font-jakarta text-[10px] font-bold uppercase tracking-wide text-[#8e706a]"
+      >
         {label}
       </label>
 
       <input
-        required
+        id={`manager-${name}`}
+        required={required}
         type={type}
         name={name}
         value={value}
         onChange={onChange}
-        className="mt-1 w-full rounded-xl border border-[#e2bfb7] bg-white px-4 py-3 text-sm outline-none focus:border-[#b32d0f]"
+        disabled={disabled}
+        autoComplete={autoComplete}
+        className="mt-1 w-full rounded-xl border border-[#e2bfb7] bg-white px-4 py-3 text-sm outline-none focus:border-[#b32d0f] disabled:opacity-60"
       />
     </div>
   );
@@ -499,5 +721,3 @@ function WarningIcon() {
 }
 
 export default OwnerProfileModals;
-
-

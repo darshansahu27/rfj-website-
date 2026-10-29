@@ -14,12 +14,12 @@ function OwnerLogin() {
           Owner
         </h2>
 
-        <p className="mt-3 w-full max-w-[380px] text-center font-jakarta text-[14px] leading-5 text-[#8e706a]">
+        <p className="mt-3 w-full max-w-95 text-center font-jakarta text-[14px] leading-5 text-[#8e706a]">
           Securely sign in to manage your restaurant operations, staff,
           menu, and business insights.
         </p>
 
-        <div className="mt-7 w-full max-w-[430px] text-left">
+        <div className="mt-7 w-full max-w-107.5 text-left">
           <OwnerLoginForm />
         </div>
       </section>

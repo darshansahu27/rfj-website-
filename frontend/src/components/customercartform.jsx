@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 
 const CART_STORAGE_KEY = "rfj_cart_items";
 
+
 function getSavedCart() {
   try {
     const savedCart = localStorage.getItem(CART_STORAGE_KEY);
@@ -18,13 +19,26 @@ function getSavedCart() {
       return [];
     }
 
-    return parsedCart.filter(
-      (item) =>
-        item &&
-        item.id !== undefined &&
-        item.id !== null &&
-        Number(item.quantity) > 0
-    );
+    return parsedCart
+      .filter(
+        (item) =>
+          item &&
+          typeof item.id === "string" &&
+          item.id.trim().length > 0 &&
+          Number.isFinite(Number(item.quantity)) &&
+          Number(item.quantity) > 0
+      )
+      .map((item) => ({
+        ...item,
+        quantity: Math.min(99, Math.floor(Number(item.quantity))),
+        price:
+          item.price === null || item.price === undefined
+            ? 0
+            : Number.isFinite(Number(item.price)) && Number(item.price) >= 0
+              ? Number(item.price)
+              : 0,
+      }))
+      .filter((item) => item.quantity > 0);
   } catch (error) {
     console.error("Unable to read saved cart:", error);
     return [];
@@ -140,7 +154,6 @@ function CustomerCartForm() {
       console.error("Unable to save cart:", error);
     }
   }, [cartItems]);
-
   const updateQuantity = (id, change) => {
     setCartItems((currentItems) =>
       currentItems
@@ -151,12 +164,16 @@ function CustomerCartForm() {
 
           return {
             ...item,
-            quantity: Number(item.quantity) + change,
+            quantity: Math.min(
+              99,
+              Math.max(0, Number(item.quantity) + change)
+            ),
           };
         })
         .filter((item) => Number(item.quantity) > 0)
     );
   };
+
 
   const itemsTotal = cartItems.reduce(
     (total, item) =>
@@ -181,7 +198,7 @@ function CustomerCartForm() {
       <header className="fixed left-0 top-0 z-50 flex h-16 w-full items-center justify-between bg-white/95 px-5 shadow-sm backdrop-blur-md">
         <button
           type="button"
-          onClick={() => navigate("/customermenu")}
+          onClick={() => navigate("/menu")}
           className="flex h-10 w-10 items-center justify-center rounded-full text-[#1e1b18] transition-colors hover:bg-[#f5ece7]"
           aria-label="Go back to menu"
         >

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 
 const categories = [
@@ -6,60 +5,83 @@ const categories = [
   "Main Course",
   "Tandoor",
   "Chinese",
-  "Biryani",
+  "Rice and Biryani",
+  "Breads",
   "Beverages",
   "Desserts",
 ];
 
-function ManagerAddMenuItem({ onClose, onSave }) {
+function ManagerAddMenuItem({
+  onClose,
+  onSave,
+  saving = false,
+}) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("Main Course");
   const [price, setPrice] = useState("");
   const [foodType, setFoodType] = useState("Veg");
   const [available, setAvailable] = useState(true);
-  const [image, setImage] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState("");
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    return () => {
-      if (image.startsWith("blob:")) {
-        URL.revokeObjectURL(image);
-      }
-    };
-  }, [image]);
+    if (!imageFile) {
+      setImagePreview("");
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(imageFile);
+    setImagePreview(previewUrl);
+
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [imageFile]);
 
   const handleImageChange = (event) => {
     const file = event.target.files?.[0];
+
     if (!file) return;
 
-    if (image.startsWith("blob:")) {
-      URL.revokeObjectURL(image);
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      setError("Please select a JPG, PNG, or WebP image.");
+      event.target.value = "";
+      return;
     }
 
-    setImage(URL.createObjectURL(file));
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image size must be 5 MB or less.");
+      event.target.value = "";
+      return;
+    }
+
+    setError("");
+    setImageFile(file);
   };
 
   const handleSave = async () => {
-    if (saving) return;
+    setError("");
 
     if (!name.trim()) {
-      setFormError("Please enter the item name.");
+      setError("Please enter the item name.");
       return;
     }
 
-    if (
-      price.trim() === "" ||
-      !Number.isFinite(Number(price)) ||
-      Number(price) < 0
-    ) {
-      setFormError("Please enter a valid non-negative price.");
+    if (!price.trim() || !Number.isFinite(Number(price))) {
+      setError("Please enter a valid price.");
       return;
     }
 
-    setSaving(true);
-    setFormError("");
+    if (Number(price) < 0) {
+      setError("Price cannot be negative.");
+      return;
+    }
 
     try {
       await onSave({
@@ -69,18 +91,16 @@ function ManagerAddMenuItem({ onClose, onSave }) {
         price,
         foodType,
         available,
-        image,
+        imageFile,
       });
-    } catch (error) {
-      setFormError(error.message || "Unable to save the item.");
-    } finally {
-      setSaving(false);
+    } catch (err) {
+      setError(err.message || "Unable to save the menu item.");
     }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-4">
-      <div className="max-h-[90vh] w-full max-w-[520px] overflow-y-auto rounded-t-2xl bg-white p-5">
+      <div className="max-h-[90vh] w-full max-w-130 overflow-y-auto rounded-t-2xl bg-white p-5">
         {/* Header */}
         <div className="flex items-center justify-between">
           <h2 className="font-playfair text-[20px] font-bold text-[#2b211e]">
@@ -107,9 +127,9 @@ function ManagerAddMenuItem({ onClose, onSave }) {
 
             <div className="mt-2 flex items-center gap-3">
               <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#f1e8e3]">
-                {image ? (
+                {imagePreview ? (
                   <img
-                    src={image}
+                    src={imagePreview}
                     alt="New menu preview"
                     className="h-full w-full object-cover"
                   />
@@ -122,9 +142,10 @@ function ManagerAddMenuItem({ onClose, onSave }) {
 
               <label className="cursor-pointer rounded-full border border-[#eadfce] px-4 py-2 font-jakarta text-[10px] font-semibold text-[#8d1900]">
                 Change Image
+
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp"
                   onChange={handleImageChange}
                   disabled={saving}
                   className="hidden"
@@ -138,6 +159,7 @@ function ManagerAddMenuItem({ onClose, onSave }) {
             <label className="font-jakarta text-[11px] font-semibold text-[#5a413b]">
               Item Name
             </label>
+
             <input
               type="text"
               value={name}
@@ -153,6 +175,7 @@ function ManagerAddMenuItem({ onClose, onSave }) {
             <label className="font-jakarta text-[11px] font-semibold text-[#5a413b]">
               Description
             </label>
+
             <textarea
               rows="3"
               value={description}
@@ -168,6 +191,7 @@ function ManagerAddMenuItem({ onClose, onSave }) {
             <label className="font-jakarta text-[11px] font-semibold text-[#5a413b]">
               Category
             </label>
+
             <select
               value={category}
               onChange={(event) => setCategory(event.target.value)}
@@ -187,10 +211,12 @@ function ManagerAddMenuItem({ onClose, onSave }) {
             <label className="font-jakarta text-[11px] font-semibold text-[#5a413b]">
               Price
             </label>
+
             <div className="mt-1 flex items-center rounded-xl border border-[#eadfce] bg-white px-3">
               <span className="font-jakarta text-[12px] text-[#6b6b6b]">
                 ₹
               </span>
+
               <input
                 type="number"
                 min="0"
@@ -209,6 +235,7 @@ function ManagerAddMenuItem({ onClose, onSave }) {
             <label className="font-jakarta text-[11px] font-semibold text-[#5a413b]">
               Food Type
             </label>
+
             <select
               value={foodType}
               onChange={(event) => setFoodType(event.target.value)}
@@ -226,6 +253,7 @@ function ManagerAddMenuItem({ onClose, onSave }) {
               <p className="font-jakarta text-[11px] font-semibold text-[#5a413b]">
                 Availability
               </p>
+
               <p className="mt-0.5 font-jakarta text-[9px] text-[#9a9a9a]">
                 {available ? "Available" : "Unavailable"}
               </p>
@@ -238,7 +266,9 @@ function ManagerAddMenuItem({ onClose, onSave }) {
               className={`relative h-5 w-9 rounded-full transition-colors disabled:opacity-50 ${
                 available ? "bg-[#159447]" : "bg-[#b9a9a2]"
               }`}
-              aria-label={available ? "Mark unavailable" : "Mark available"}
+              aria-label={
+                available ? "Mark unavailable" : "Mark available"
+              }
             >
               <span
                 className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm ${
@@ -249,13 +279,10 @@ function ManagerAddMenuItem({ onClose, onSave }) {
           </div>
         </div>
 
-        {/* Error message */}
-        {formError && (
-          <p
-            role="alert"
-            className="mt-4 rounded-xl bg-red-50 px-3 py-2 font-jakarta text-[11px] text-red-700"
-          >
-            {formError}
+        {/* Error */}
+        {error && (
+          <p className="mt-4 rounded-lg bg-red-50 p-3 font-jakarta text-[11px] text-red-700">
+            {error}
           </p>
         )}
 

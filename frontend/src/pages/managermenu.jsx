@@ -1,174 +1,227 @@
-import { useCallback, useEffect, useState } from "react";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { auth } from "../firebase";
 
 import ManagerMenuHeader from "../components/managermenuheader";
 import ManagerMenuSearch from "../components/managermenusearch";
 import ManagerMenuCategories from "../components/managermenucategories";
 import ManagerMenuItemCard from "../components/managermenuitemcard";
 import ManagerAddMenuItem from "../components/manageraddmenuitem";
-import { auth } from "../firebase";
 
-const API_URL = "http://localhost:5000/api/menu";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 function ManagerMenu() {
   const location = useLocation();
+  const backTo = location.state?.from || "/managerdashboard";
 
   const [menuItems, setMenuItems] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const backTo = location.state?.from || "/managerdashboard";
+  const getToken = useCallback(async () => {
+    const user = auth.currentUser;
 
-  // Fetch menu items from the Express backend.
-  // Public menu browsing remains unchanged.
-  const fetchMenuItems = useCallback(async () => {
+    if (!user) {
+      throw new Error("Please log in again to manage the menu.");
+    }
+
+    return user.getIdToken();
+  }, []);
+
+  const loadMenu = useCallback(async () => {
+    setLoading(true);
+    setError("");
+
     try {
-      setLoading(true);
-      setError("");
-
-      const response = await fetch(API_URL);
+      const response = await fetch(`${API_URL}/api/menu`);
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(
-          result.message || "Failed to load menu items."
-        );
+        throw new Error(result.message || "Unable to load menu items.");
       }
 
-      const formattedItems = result.data.map((item) => ({
-        id: item.id,
-        name: item.name,
-        description: item.description || "",
-        categoryId: item.category_id,
-        category: item.category_id,
-        price: String(item.price),
-        foodType:
-          item.dietary_type === "vegetarian" ? "Veg" : "Non-Veg",
-        available: item.is_available,
-        image: item.image_url || "",
-        isPopular: item.is_popular,
-      }));
-
-      setMenuItems(formattedItems);
-    } catch (err) {
-      console.error("Failed to fetch manager menu:", err);
-
-      setError(
-        "Unable to load menu items. Check that your backend is running and try again."
-      );
+      setMenuItems(Array.isArray(result.items) ? result.items : []);
+    } catch (loadError) {
+      setError(loadError.message || "Unable to load menu items.");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchMenuItems();
-  }, [fetchMenuItems]);
+    loadMenu();
+  }, [loadMenu]);
 
-  // Create a menu item using the authenticated manager/owner.
   const handleSaveNewItem = async (item) => {
+    setSaving(true);
+    setError("");
+
     try {
-      setError("");
+      const token = await getToken();
+      const formData = new FormData();
 
-      const user = auth.currentUser;
+      formData.append("name", item.name.trim());
+      formData.append("description", item.description || "");
+      formData.append("category", item.category);
+      formData.append("price", String(item.price));
+      formData.append("foodType", item.foodType);
+      formData.append("available", String(item.available));
 
-      if (!user) {
-        throw new Error(
-          "Please sign in again to manage the menu."
-        );
+      if (item.imageFile) {
+        formData.append("image", item.imageFile);
       }
 
-      const idToken = await user.getIdToken();
-
-      const response = await fetch(API_URL, {
+      const response = await fetch(`${API_URL}/api/menu`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(item),
+        body: formData,
       });
 
       const result = await response.json();
 
-      if (!response.ok || !result.success) {
-        throw new Error(
-          result.message || "Failed to create menu item."
-        );
+      if (!response.ok || !result.success || !result.item) {
+        throw new Error(result.message || "Unable to create menu item.");
       }
 
-      // Refresh the menu from Supabase after successful creation.
-      await fetchMenuItems();
-
-      // Close the form after a successful save.
+      setMenuItems((current) => [result.item, ...current]);
       setShowAddModal(false);
-    } catch (err) {
-      console.error("Failed to add menu item:", err);
+    } catch (saveError) {
+      const message =
+        saveError.message || "Unable to create menu item.";
 
-      setError(
-        err.message || "Unable to save the new menu item."
-      );
+      setError(message);
+
+      // Allow the add-item form to display the error inside its modal.
+      throw new Error(message);
+    } finally {
+      setSaving(false);
     }
   };
+
+  const handleItemUpdated = (updatedItem) => {
+    setMenuItems((current) =>
+      current.map((existing) =>
+        existing.id === updatedItem.id ? updatedItem : existing
+      )
+    );
+  };
+
+  const filteredItems = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    return menuItems.filter((item) => {
+      const name = String(item.name || "").toLowerCase();
+      const description = String(item.description || "").toLowerCase();
+
+      const matchesSearch =
+        !query ||
+        name.includes(query) ||
+        description.includes(query);
+
+      const normalizedCategory =
+        selectedCategory === "Biryani"
+          ? "Rice and Biryani"
+          : selectedCategory;
+
+      const matchesCategory =
+        selectedCategory === "All" ||
+        item.category === normalizedCategory;
+
+      return matchesSearch && matchesCategory;
+    });
+  }, [menuItems, searchQuery, selectedCategory]);
 
   return (
     <main className="min-h-screen bg-[#fff8f5]">
       <ManagerMenuHeader backTo={backTo} />
 
       <div className="p-5">
-        <ManagerMenuSearch />
+        <ManagerMenuSearch
+          value={searchQuery}
+          onChange={setSearchQuery}
+        />
 
         <div className="mt-4">
-          <ManagerMenuCategories />
+          <ManagerMenuCategories
+            value={selectedCategory}
+            onChange={setSelectedCategory}
+          />
         </div>
 
         <div className="mt-5">
           <button
             type="button"
-            onClick={() => setShowAddModal(true)}
+            onClick={() => {
+              setError("");
+              setShowAddModal(true);
+            }}
             className="w-full rounded-xl bg-[#8d1900] py-3 font-jakarta text-[12px] font-bold text-white shadow-sm transition-transform active:scale-[0.98]"
           >
             + Add New Item
           </button>
         </div>
 
-        <div className="mt-5 space-y-4">
-          {loading ? (
-            <p className="py-10 text-center text-sm text-[#5a413b]">
-              Loading menu items...
-            </p>
-          ) : error ? (
-            <div className="py-10 text-center">
-              <p className="text-sm text-red-700">{error}</p>
+        {error && !showAddModal && (
+          <p
+            role="alert"
+            className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700"
+          >
+            {error}
+          </p>
+        )}
 
-              <button
-                type="button"
-                onClick={fetchMenuItems}
-                className="mt-4 rounded-lg bg-[#8d1900] px-5 py-2 text-sm font-bold text-white"
-              >
-                Try Again
-              </button>
-            </div>
-          ) : menuItems.length === 0 ? (
-            <p className="py-10 text-center text-sm text-[#5a413b]">
-              No menu items found.
+        {loading ? (
+          <p className="mt-5 text-sm text-[#8e706a]">
+            Loading menu items...
+          </p>
+        ) : error && menuItems.length === 0 ? (
+          <div className="mt-5">
+            <p className="text-sm text-[#8e706a]">
+              Unable to load the menu.
             </p>
-          ) : (
-            menuItems.map((item) => (
+
+            <button
+              type="button"
+              onClick={loadMenu}
+              className="mt-3 rounded-full bg-[#8d1900] px-5 py-2 font-jakarta text-sm font-semibold text-white"
+            >
+              Try Again
+            </button>
+          </div>
+        ) : filteredItems.length === 0 ? (
+          <p className="mt-5 text-sm text-[#8e706a]">
+            No menu items match your search or category.
+          </p>
+        ) : (
+          <div className="mt-5 space-y-4">
+            {filteredItems.map((item) => (
               <ManagerMenuItemCard
                 key={item.id}
                 item={item}
+                onUpdated={handleItemUpdated}
               />
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {showAddModal && (
         <ManagerAddMenuItem
-          onClose={() => setShowAddModal(false)}
+          onClose={() => {
+            if (!saving) {
+              setShowAddModal(false);
+              setError("");
+            }
+          }}
           onSave={handleSaveNewItem}
+          saving={saving}
         />
       )}
     </main>

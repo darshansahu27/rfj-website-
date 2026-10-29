@@ -1,7 +1,58 @@
+
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { auth } from "../firebase";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 function OwnerDashboardOrdersSummary() {
   const navigate = useNavigate();
+
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [activeOrders, setActiveOrders] = useState(0);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadOrdersSummary = async () => {
+      try {
+        const user = auth.currentUser;
+
+        if (!user) {
+          throw new Error("Please log in again to view order statistics.");
+        }
+
+        const token = await user.getIdToken();
+
+        const response = await fetch(`${API_URL}/api/orders/summary`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(
+            result.message || "Unable to load order statistics."
+          );
+        }
+
+        if (isMounted) {
+          setTotalOrders(result.summary?.totalOrders ?? 0);
+          setActiveOrders(result.summary?.activeOrders ?? 0);
+        }
+      } catch (error) {
+        console.error("Unable to load orders summary:", error);
+      }
+    };
+
+    loadOrdersSummary();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleActiveOrdersClick = () => {
     navigate("/manageractiveorders", {
@@ -18,11 +69,11 @@ function OwnerDashboardOrdersSummary() {
         </p>
 
         <p className="mt-1 font-playfair text-[30px] font-bold leading-9 text-[#2b211e]">
-          1,286
+          {totalOrders.toLocaleString()}
         </p>
 
         <p className="mt-1 font-jakarta text-[9px] leading-4 text-[#8e706a]">
-          This month
+          All orders
         </p>
       </div>
 
@@ -38,7 +89,7 @@ function OwnerDashboardOrdersSummary() {
         </p>
 
         <p className="mt-1 font-playfair text-[30px] font-bold leading-9 text-[#2b211e]">
-          8
+          {activeOrders.toLocaleString()}
         </p>
 
         <p className="mt-1 font-jakarta text-[9px] leading-4 text-[#8e706a]">
