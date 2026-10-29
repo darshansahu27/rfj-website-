@@ -202,7 +202,7 @@ function ManagerLoginForm() {
         </h2>
 
         <p
-          className="max-w-[360px] text-[#6b6b6b]"
+          className="max-w-90 text-[#6b6b6b]"
           style={{
             fontFamily: '"Plus Jakarta Sans", sans-serif',
             fontSize: "14px",

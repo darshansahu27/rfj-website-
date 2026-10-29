@@ -308,7 +308,7 @@ function ManagerMenuItemCard({
 
       {showEditModal && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-4">
-          <div className="max-h-[90vh] w-full max-w-[520px] overflow-y-auto rounded-t-2xl bg-white p-5">
+          <div className="max-h-[90vh] w-full max-w-130 overflow-y-auto rounded-t-2xl bg-white p-5">
             <div className="flex items-center justify-between">
               <h2 className="font-playfair text-[20px] font-bold text-[#2b211e]">
                 Edit Menu Item
