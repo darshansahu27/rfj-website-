@@ -64,23 +64,41 @@ function SignupForm() {
       // Step 3: Get a Firebase ID token.
       const idToken = await credential.user.getIdToken();
 
-      // Step 4: Resolve the deployed backend URL.
-      const configuredApiUrl = import.meta.env.VITE_API_URL;
+      
+      // Step 4: Resolve and validate the deployed backend URL.
+      const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
 
-      if (
-        import.meta.env.PROD &&
-        (!configuredApiUrl ||
-          !/^https?:\/\//i.test(configuredApiUrl.trim()) ||
-          /localhost|127\.0\.0\.1/i.test(configuredApiUrl))
-      ) {
+      if (!configuredApiUrl) {
         throw new Error(
-          "The production backend URL is not configured correctly. Please contact support."
+          "Backend URL is missing. Please configure VITE_API_URL in Vercel."
         );
       }
 
-      const apiUrl = (
-        configuredApiUrl || "http://localhost:5000"
-      ).trim().replace(/\/+$/, "");
+      let parsedApiUrl;
+
+      try {
+        parsedApiUrl = new URL(configuredApiUrl);
+      } catch {
+        throw new Error(
+          "The backend URL is invalid. Please check VITE_API_URL in Vercel."
+        );
+      }
+
+      if (
+        !["http:", "https:"].includes(parsedApiUrl.protocol) ||
+        (import.meta.env.PROD && parsedApiUrl.protocol !== "https:") ||
+        parsedApiUrl.username ||
+        parsedApiUrl.password ||
+        parsedApiUrl.search ||
+        parsedApiUrl.hash
+      ) {
+        throw new Error(
+          "The backend URL must be a valid HTTPS URL in production."
+        );
+      }
+
+      const apiUrl = configuredApiUrl.replace(/\/+$/, "");
+
 
       // Step 5: Create the customer profile through the backend.
       const response = await fetch(
