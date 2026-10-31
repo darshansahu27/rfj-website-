@@ -52,7 +52,35 @@ function LoginForm() {
         },
       });
 
-      const result = await response.json();
+      let result = null;
+const responseText = await response.text();
+
+if (responseText) {
+  try {
+    result = JSON.parse(responseText);
+  } catch {
+    console.error(
+      "Profile API returned a non-JSON response:",
+      response.status,
+      responseText.slice(0, 200)
+    );
+  }
+}
+
+if (!response.ok || !result?.success) {
+  await signOut(auth);
+
+  if (response.status === 404 || response.status === 405) {
+    throw new Error(
+      "The customer profile service is unavailable. Please try again later."
+    );
+  }
+
+  throw new Error(
+    result?.message ||
+      "We couldn't verify your customer profile. Please try again."
+  );
+}
 
       if (!response.ok || !result.success) {
         await signOut(auth);

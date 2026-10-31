@@ -63,33 +63,7 @@ function SignupForm() {
       // Step 3: Get a Firebase ID token.
       const idToken = await credential.user.getIdToken();
 
-      // Step 4: Create the customer profile in Supabase through the backend.
-      const apiUrl =
-        import.meta.env.VITE_API_URL || "http://localhost:5000";
-
-      const response = await fetch(`${apiUrl}/api/profile/customer`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({
-          fullName: trimmedName,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(
-          result.message || "Unable to create your customer profile."
-        );
-      }
-
-      // Step 5: Redirect only after profile creation succeeds.
-      navigate("/menu", { replace: true });
-    } catch (err) {
-      console.error("Customer signup failed:", err);
+      // Step 4: Create the customer profile and ending after the if
 
       if (userCreated) {
         try {
@@ -117,6 +91,33 @@ function SignupForm() {
       setLoading(false);
     }
   };
+  
+      if (err.code === "auth/email-already-in-use") {
+        setError(
+          "An account already exists with this email. Please log in instead."
+        );
+      } else if (err.code === "auth/invalid-email") {
+        setError("Please enter a valid email address.");
+      } else if (err.code === "auth/weak-password") {
+        setError("Please choose a stronger password.");
+      } else if (err.code === "auth/operation-not-allowed") {
+        setError("Email and password signup is disabled.");
+      } else if (err.code === "auth/network-request-failed") {
+        setError("Network error. Check your internet connection and try again.");
+      } else if (err.status === 404 || err.status === 405) {
+        setError(
+          "The customer profile service is unavailable. Please try again later."
+        );
+      } else if (err.message === "Failed to fetch") {
+        setError("Cannot connect to the backend. Please try again.");
+      } else {
+        setError(
+          err.status
+            ? err.message
+            : "We couldn't complete registration. Please try again."
+        );
+      }
+
 
   return (
     <main className="grow pt-24 pb-12 px-5 max-w-md mx-auto w-full">
