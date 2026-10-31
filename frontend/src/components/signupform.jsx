@@ -65,39 +65,22 @@ function SignupForm() {
       const idToken = await credential.user.getIdToken();
 
       
+      
       // Step 4: Resolve and validate the deployed backend URL.
       const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
+
+      // TEMPORARY DEBUGGING — remove after fixing the issue.
+      console.log("Production mode:", import.meta.env.PROD);
+      console.log(
+        "Configured API URL:",
+        JSON.stringify(configuredApiUrl)
+      );
 
       if (!configuredApiUrl) {
         throw new Error(
           "Backend URL is missing. Please configure VITE_API_URL in Vercel."
         );
       }
-
-      let parsedApiUrl;
-
-      try {
-        parsedApiUrl = new URL(configuredApiUrl);
-      } catch {
-        throw new Error(
-          "The backend URL is invalid. Please check VITE_API_URL in Vercel."
-        );
-      }
-
-      if (
-        !["http:", "https:"].includes(parsedApiUrl.protocol) ||
-        (import.meta.env.PROD && parsedApiUrl.protocol !== "https:") ||
-        parsedApiUrl.username ||
-        parsedApiUrl.password ||
-        parsedApiUrl.search ||
-        parsedApiUrl.hash
-      ) {
-        throw new Error(
-          "The backend URL must be a valid HTTPS URL in production."
-        );
-      }
-
-      const apiUrl = configuredApiUrl.replace(/\/+$/, "");
 
 
       // Step 5: Create the customer profile through the backend.
