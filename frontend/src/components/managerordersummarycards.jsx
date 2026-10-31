@@ -6,7 +6,7 @@ function ManagerOrderSummaryCards({
   const navigate = useNavigate();
 
   return (
-    <section className="mx-auto w-full max-w-[600px] px-4 pt-5">
+    <section className="mx-auto w-full max-w-150 px-4 pt-5">
       <div className="grid grid-cols-2 gap-3">
         <button
           type="button"
@@ -15,7 +15,7 @@ function ManagerOrderSummaryCards({
               state: { from: activeOrdersFrom },
             })
           }
-          className="flex h-[72px] items-center justify-center rounded-xl bg-[#c92f0f] text-white shadow-sm transition-transform active:scale-[0.97]"
+          className="flex h-18 items-center justify-center rounded-xl bg-[#c92f0f] text-white shadow-sm transition-transform active:scale-[0.97]"
         >
           <div className="flex flex-col items-center">
             <span className="font-playfair text-[17px] font-bold leading-5">
@@ -35,7 +35,7 @@ function ManagerOrderSummaryCards({
               state: { from: "/managerorders" },
             })
           }
-          className="flex h-[72px] items-center justify-center rounded-xl bg-white text-[#5a413b] shadow-sm transition-transform active:scale-[0.97]"
+          className="flex h-18 items-center justify-center rounded-xl bg-white text-[#5a413b] shadow-sm transition-transform active:scale-[0.97]"
         >
           <div className="flex flex-col items-center">
             <span className="font-playfair text-[17px] font-bold leading-5">

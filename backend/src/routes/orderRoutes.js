@@ -32,38 +32,39 @@ router.post("/customer", verifyFirebaseToken, async (req, res) => {
   try {
     const firebaseUid = req.firebaseUser?.uid;
 
-    const {
-      items,
-      name,
-      phone,
-      addressLine,
-      city,
-      state,
-      postalCode,
-      landmark,
-    } = req.body ?? {};
+   const {
+  items,
+  name,
+  phone,
+  addressLine,
+  landmark,
+} = req.body ?? {};
 
+    
     // Validate the delivery details.
+    const normalizedPhone = phone?.replace(/\D/g, "");
+    const phoneDigits =
+      normalizedPhone?.length === 12 && normalizedPhone.startsWith("91")
+        ? normalizedPhone.slice(2)
+        : normalizedPhone;
+
     if (
       typeof name !== "string" ||
-      !name.trim() ||
+      name.trim().length < 2 ||
+      name.trim().length > 100 ||
       typeof phone !== "string" ||
-      !/^\+91\s?[6-9]\d{4}\s?\d{5}$/.test(phone.trim()) ||
+      !/^[6-9]\d{9}$/.test(phoneDigits) ||
       typeof addressLine !== "string" ||
       addressLine.trim().length < 10 ||
-      typeof city !== "string" ||
-      !city.trim() ||
-      typeof state !== "string" ||
-      !state.trim() ||
-      typeof postalCode !== "string" ||
-      (postalCode.trim() !== "" && !/^\d{6}$/.test(postalCode.trim()))
+      addressLine.trim().length > 500
     ) {
       return res.status(400).json({
         success: false,
         message:
-          "Enter a valid name, Indian mobile number, address, city, state and 6-digit PIN code.",
+          "Enter a valid name, 10-digit Indian mobile number, and complete delivery address.",
       });
     }
+
 
     // Validate the cart.
     if (
@@ -261,16 +262,13 @@ router.post("/customer", verifyFirebaseToken, async (req, res) => {
     // Find or create the delivery address.
     // The addresses.id column has no database default.
     const addressValues = {
-      address_line: addressLine.trim(),
-      city: city.trim(),
-      state: state.trim(),
-      postal_code: postalCode.trim(),
-      landmark:
-        typeof landmark === "string" && landmark.trim()
-          ? landmark.trim()
-          : null,
-      updated_at: new Date().toISOString(),
-    };
+  address_line: addressLine.trim(),
+  landmark:
+    typeof landmark === "string" && landmark.trim()
+      ? landmark.trim()
+      : null,
+  updated_at: new Date().toISOString(),
+};
 
     const { data: existingAddress, error: addressLookupError } =
       await supabaseAdmin
@@ -326,9 +324,6 @@ router.post("/customer", verifyFirebaseToken, async (req, res) => {
           customer_id: profile.id,
           address_id: address.id,
           delivery_address_line: addressLine.trim(),
-          delivery_city: city.trim(),
-          delivery_state: state.trim(),
-          delivery_postal_code: postalCode.trim(),
           delivery_landmark: addressValues.landmark,
           order_number: orderNumber,
           subtotal,
@@ -395,6 +390,65 @@ router.post("/customer", verifyFirebaseToken, async (req, res) => {
  *
  * Allows an authenticated customer to view only their own order.
  */
+
+/**
+ * GET /api/orders/summary
+ * Returns order counts for the authenticated owner.
+ */
+router.get("/summary", verifyFirebaseToken, async (req, res) => {
+  try {
+    const firebaseUid = req.firebaseUser?.uid;
+
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .select("role")
+      .eq("firebase_uid", firebaseUid)
+      .maybeSingle();
+
+    if (profileError) throw profileError;
+
+    if (!profile || profile.role !== "owner") {
+      return res.status(403).json({
+        success: false,
+        message: "Only owners can view the order summary.",
+      });
+    }
+
+    const { count: totalOrders, error: totalError } = await supabaseAdmin
+      .from("orders")
+      .select("id", { count: "exact", head: true });
+
+    if (totalError) throw totalError;
+
+    // Count orders that are not yet delivered or cancelled.
+    const activeStatuses = VALID_STATUSES.filter(
+      (status) => !["delivered", "cancelled"].includes(status)
+    );
+
+    const { count: activeOrders, error: activeError } = await supabaseAdmin
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .in("status", activeStatuses);
+
+    if (activeError) throw activeError;
+
+    return res.json({
+      success: true,
+      summary: {
+        totalOrders: totalOrders ?? 0,
+        activeOrders: activeOrders ?? 0,
+      },
+    });
+  } catch (error) {
+    console.error("Unable to load order summary:", error.message);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to load order summary.",
+    });
+  }
+});
+
 router.get("/track/:id", verifyFirebaseToken, async (req, res) => {
   try {
     const firebaseUid = req.firebaseUser?.uid;
@@ -479,12 +533,9 @@ router.get("/track/:id", verifyFirebaseToken, async (req, res) => {
             subtotal
           ),
           addresses (
-            address_line,
-            city,
-            state,
-            postal_code,
-            landmark
-          ),
+  address_line,
+  landmark
+),
           payments (
             payment_method,
             payment_status,
@@ -533,7 +584,7 @@ const ORDER_DETAILS_SELECT = `
   *,
   order_items(*),
   customers(phone),
-  addresses(address_line, city, state, postal_code, landmark),
+  addresses(address_line, landmark),
   payments(payment_method, payment_status, amount)
 `;
 

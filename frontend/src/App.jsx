@@ -9,6 +9,7 @@ import CustomerCheckout from "./pages/customercheckout";
 import PaymentConfirmed from "./pages/paymentconfirmed";
 import PaymentFailed from "./pages/paymentfailed";
 import OrderCancelled from "./pages/ordercancelled";
+import OrderTracking from "./pages/ordertracking";
 
 import OwnerLogin from "./pages/ownerlogin";
 import OwnerDashboard from "./pages/ownerdashboard";
@@ -44,6 +45,7 @@ function App() {
         <Route path="/paymentconfirmed" element={<PaymentConfirmed />} />
         <Route path="/paymentfailed" element={<PaymentFailed />} />
         <Route path="/ordercancelled" element={<OrderCancelled />} />
+        <Route path="/ordertracking/:id" element={<OrderTracking />} />
 
         {/* Owner routes */}
         <Route path="/ownerlogin" element={<OwnerLogin />} />
@@ -82,7 +84,7 @@ function App() {
           path="/managerdashboard"
           element={
             <ProtectedRoute
-              allowedRole="manager"
+              allowedRole={["manager", "owner"]}
               loginPath="/managerlogin"
             >
               <ManagerOrderProvider>
@@ -96,7 +98,7 @@ function App() {
           path="/managermenu"
           element={
             <ProtectedRoute
-              allowedRole="manager"
+              allowedRole={["manager", "owner"]}
               loginPath="/managerlogin"
             >
               <ManagerMenu />
@@ -122,7 +124,7 @@ function App() {
           path="/manageractiveorders"
           element={
             <ProtectedRoute
-              allowedRole="manager"
+              allowedRole={["manager", "owner"]}
               loginPath="/managerlogin"
             >
               <ManagerOrderProvider>

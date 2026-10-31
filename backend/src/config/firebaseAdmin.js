@@ -1,3 +1,4 @@
+
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -7,14 +8,22 @@ import { getAuth } from "firebase-admin/auth";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const serviceAccountPath = path.resolve(
-  __dirname,
-  "../../firebase-service-account.json"
-);
+let serviceAccount;
 
-const serviceAccount = JSON.parse(
-  fs.readFileSync(serviceAccountPath, "utf8")
-);
+if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+  serviceAccount = JSON.parse(
+    process.env.FIREBASE_SERVICE_ACCOUNT_JSON
+  );
+} else {
+  const serviceAccountPath = path.resolve(
+    __dirname,
+    "../../firebase-service-account.json"
+  );
+
+  serviceAccount = JSON.parse(
+    fs.readFileSync(serviceAccountPath, "utf8")
+  );
+}
 
 const firebaseAdminApp =
   getApps().length === 0

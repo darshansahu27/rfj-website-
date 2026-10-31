@@ -1,12 +1,26 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+
 
 function PaymentConfirmedForm() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const order = location.state?.order;
+
+  const handleTrackOrder = () => {
+    if (!order?.id) {
+      navigate("/profile");
+      return;
+    }
+
+    navigate(`/ordertracking/${encodeURIComponent(order.id)}`);
+  };
 
   /* Continue Shopping */
   const handleContinueShopping = () => {
     navigate("/menu");
   };
+
 
   return (
     <div className="min-h-screen bg-[#fff8f5] text-[#1e1b18]">
@@ -93,7 +107,7 @@ function PaymentConfirmedForm() {
               </p>
 
               <p className="text-[10px] font-semibold text-[#1e1b18]">
-                RFJ-2025-000123
+                {order?.order_number || order?.id || "Unavailable"}
               </p>
             </div>
 
@@ -144,18 +158,26 @@ function PaymentConfirmedForm() {
         </section>
 
 
-        {/* Continue Shopping */}
-        <div className="mt-auto pt-5">
+       
+        {/* Order Actions */}
+        <div className="mt-auto space-y-3 pt-5">
+          <button
+            type="button"
+            onClick={handleTrackOrder}
+            className="w-full rounded-xl bg-[#b32d0f] py-2.5 text-[10px] font-bold text-white shadow-sm transition-all duration-200 hover:bg-[#9f260c] active:scale-[0.98]"
+          >
+            Track Your Order
+          </button>
 
           <button
             type="button"
             onClick={handleContinueShopping}
-            className="w-full rounded-xl bg-[#b32d0f] py-2.5 text-[10px] font-bold text-white shadow-sm transition-all duration-200 hover:bg-[#9f260c] active:scale-[0.98]"
+            className="w-full rounded-xl border border-[#b32d0f] bg-white py-2.5 text-[10px] font-bold text-[#b32d0f] shadow-sm transition-all duration-200 hover:bg-[#fff0e4] active:scale-[0.98]"
           >
             Continue Shopping
           </button>
-
         </div>
+
 
       </main>
 

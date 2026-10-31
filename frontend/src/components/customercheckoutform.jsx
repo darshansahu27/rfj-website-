@@ -40,12 +40,7 @@ function CustomerCheckoutForm() {
   const [cartItems, setCartItems] = useState(getSavedCart);
   const [customerDetails, setCustomerDetails] = useState(EMPTY_DETAILS);
   const [editDetails, setEditDetails] = useState(EMPTY_DETAILS);
-  const [savedAddressMeta, setSavedAddressMeta] = useState({
-    city: "",
-    state: "",
-    postalCode: "",
-  });
-
+  
   const [isEditing, setIsEditing] = useState(true);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -95,11 +90,7 @@ function CustomerCheckoutForm() {
 
       setCustomerDetails(details);
       setEditDetails(details);
-      setSavedAddressMeta({
-        city: address.city || "",
-        state: address.state || "",
-        postalCode: address.postalCode || "",
-      });
+      
 
       setCheckoutError("");
 
@@ -189,26 +180,74 @@ function CustomerCheckoutForm() {
 
   return errors;
 };
-  const handleSaveDetails = () => {
-    const errors = validateDetails();
-    setFormErrors(errors);
+  
+const handleSaveDetails = async () => {
+  const errors = validateDetails();
+  setFormErrors(errors);
 
-    if (Object.values(errors).some(Boolean)) return;
+  if (Object.values(errors).some(Boolean)) return;
+
+  const user = auth.currentUser;
+
+  if (!user) {
+    setCheckoutError("Please sign in to save your delivery details.");
+    return;
+  }
+
+  setIsSubmitting(true);
+  setCheckoutError("");
+
+  try {
+    const token = await user.getIdToken();
+
+    const phoneDigits = editDetails.phone.replace(/\D/g, "");
+    const normalizedPhone =
+      phoneDigits.length === 12 && phoneDigits.startsWith("91")
+        ? phoneDigits.slice(2)
+        : phoneDigits;
+
+    const response = await fetch(`${API_URL}/api/profile/customer`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        fullName: editDetails.name.trim(),
+        phone: normalizedPhone,
+        address: editDetails.address.trim(),
+        landmark: editDetails.landmark.trim(),
+      }),
+    });
+
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok || !result.success) {
+      throw new Error(
+        result.message || "Unable to save your delivery details."
+      );
+    }
 
     const details = {
       name: editDetails.name.trim(),
-      phone: editDetails.phone.trim(),
+      phone: normalizedPhone,
       address: editDetails.address.trim(),
       landmark: editDetails.landmark.trim(),
     };
 
-    // These edits are kept in component state only.
-    // The saved profile and saved address are never updated here.
     setCustomerDetails(details);
     setEditDetails(details);
     setIsEditing(false);
     setCheckoutError("");
-  };
+  } catch (error) {
+    console.error("Checkout details save failed:", error);
+    setCheckoutError(
+      error.message || "Unable to save your delivery details."
+    );
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const handleEditDetails = () => {
     setEditDetails({ ...customerDetails });

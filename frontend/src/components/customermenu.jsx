@@ -294,7 +294,7 @@ const [cartPrices, setCartPrices] = useState(() => {
         setMenuError("");
 
         const response = await fetch(
-          "http://localhost:5000/api/menu",
+          `${API_URL}/api/menu`,
           { signal: controller.signal }
         );
 
@@ -706,7 +706,7 @@ const [cartPrices, setCartPrices] = useState(() => {
 
       </header>
 
-      <main className="pb-32 pt-16">
+      <main className="pb-40 pt-16">
 
         {/* Search and filters */}
 
@@ -1244,9 +1244,9 @@ const [cartPrices, setCartPrices] = useState(() => {
 
       {cartItems > 0 && (
 
-        <div className="fixed bottom-0 left-0 z-50 w-full px-4 pb-5 pt-3">
+        <div className="fixed bottom-0 left-0 z-40 w-full px-4 pb-3 pt-3 pointer-events-none">
 
-          <div className="mx-auto flex max-w-md items-center justify-between gap-3 rounded-2xl border border-[#e2bfb7]/30 bg-white p-3 shadow-2xl">
+          <div className="pointer-events-auto mx-auto flex max-w-md items-center justify-between gap-3 rounded-2xl border border-[#e2bfb7]/30 bg-white p-3 shadow-2xl">
 
             <div className="flex items-center gap-2">
 

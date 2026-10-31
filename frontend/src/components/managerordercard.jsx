@@ -19,7 +19,7 @@ function ManagerOrderCard({
 
   return (
     <>
-      <article className="mx-auto w-full max-w-[600px] rounded-xl border border-[#eadfce] bg-white px-4 py-4 shadow-[0px_4px_12px_rgba(45,41,38,0.08)]">
+      <article className="mx-auto w-full max-w-150 rounded-xl border border-[#eadfce] bg-white px-4 py-4 shadow-[0px_4px_12px_rgba(45,41,38,0.08)]">
         {/* Order Header */}
         <div className="flex items-start justify-between">
           <div>
@@ -158,7 +158,7 @@ function ManagerOrderCard({
       {/* Reject Confirmation */}
       {showRejectDialog && !readOnly && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-[340px] rounded-2xl bg-white p-5 shadow-xl">
+          <div className="w-full max-w-85 rounded-2xl bg-white p-5 shadow-xl">
             <h3 className="font-playfair text-[18px] font-bold text-[#2b211e]">
               Reject Order?
             </h3>
