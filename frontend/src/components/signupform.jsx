@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -63,35 +64,85 @@ function SignupForm() {
       // Step 3: Get a Firebase ID token.
       const idToken = await credential.user.getIdToken();
 
-      // Step 4: Create the customer profile and ending after the if
+      // Step 4: Resolve the deployed backend URL.
+      const configuredApiUrl = import.meta.env.VITE_API_URL;
 
-      if (userCreated) {
+      if (
+        import.meta.env.PROD &&
+        (!configuredApiUrl ||
+          !/^https?:\/\//i.test(configuredApiUrl.trim()) ||
+          /localhost|127\.0\.0\.1/i.test(configuredApiUrl))
+      ) {
+        throw new Error(
+          "The production backend URL is not configured correctly. Please contact support."
+        );
+      }
+
+      const apiUrl = (
+        configuredApiUrl || "http://localhost:5000"
+      ).trim().replace(/\/+$/, "");
+
+      // Step 5: Create the customer profile through the backend.
+      const response = await fetch(
+        `${apiUrl}/api/profile/customer`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({
+            fullName: trimmedName,
+          }),
+        }
+      );
+
+      // Safely handle JSON, empty responses, and HTML error pages.
+      const responseText = await response.text();
+      let result = null;
+
+      if (responseText) {
         try {
-          // Sign out if registration did not finish successfully.
-          await signOut(auth);
-        } catch (signOutError) {
-          console.error("Sign-out after signup failure failed:", signOutError);
+          result = JSON.parse(responseText);
+        } catch {
+          console.error(
+            "Customer profile API returned non-JSON:",
+            response.status,
+            responseText.slice(0, 200)
+          );
         }
       }
 
-      if (err.code === "auth/email-already-in-use") {
-        setError("An account already exists with this email address.");
-      } else if (err.code === "auth/invalid-email") {
-        setError("Please enter a valid email address.");
-      } else if (err.code === "auth/weak-password") {
-        setError("Please choose a stronger password.");
-      } else if (err.code === "auth/operation-not-allowed") {
-        setError("Email and password signup is disabled in Firebase.");
-      } else if (err.message === "Failed to fetch") {
-        setError("Cannot connect to the backend. Please try again.");
-      } else {
-        setError(err.message || "Signup failed. Please try again.");
+      if (!response.ok || !result?.success) {
+        const apiError = new Error(
+          result?.message ||
+            (response.status === 404 || response.status === 405
+              ? "The customer profile endpoint is unavailable. Please contact support."
+              : "Your Firebase account was created, but your customer profile could not be saved. Please contact support.")
+        );
+
+        apiError.status = response.status;
+        throw apiError;
       }
-    } finally {
-      setLoading(false);
-    }
-  };
-  
+
+      // Step 6: Registration succeeded; continue to the menu.
+      navigate("/menu", { replace: true });
+    } catch (err) {
+      console.error("Customer signup failed:", err);
+
+      // Do not delete the Firebase account automatically.
+      // Profile creation may have failed after account creation.
+      if (userCreated) {
+        try {
+          await signOut(auth);
+        } catch (signOutError) {
+          console.error(
+            "Sign-out after signup failure failed:",
+            signOutError
+          );
+        }
+      }
+
       if (err.code === "auth/email-already-in-use") {
         setError(
           "An account already exists with this email. Please log in instead."
@@ -101,23 +152,29 @@ function SignupForm() {
       } else if (err.code === "auth/weak-password") {
         setError("Please choose a stronger password.");
       } else if (err.code === "auth/operation-not-allowed") {
-        setError("Email and password signup is disabled.");
-      } else if (err.code === "auth/network-request-failed") {
-        setError("Network error. Check your internet connection and try again.");
+        setError("Email and password signup is disabled in Firebase.");
+      } else if (
+        err.code === "auth/network-request-failed" ||
+        err.message === "Failed to fetch"
+      ) {
+        setError(
+          "A network error occurred. Please check your connection and try again."
+        );
       } else if (err.status === 404 || err.status === 405) {
         setError(
           "The customer profile service is unavailable. Please try again later."
         );
-      } else if (err.message === "Failed to fetch") {
-        setError("Cannot connect to the backend. Please try again.");
+      } else if (err.status) {
+        setError(err.message);
       } else {
         setError(
-          err.status
-            ? err.message
-            : "We couldn't complete registration. Please try again."
+          err.message || "Signup failed. Please try again."
         );
       }
-
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <main className="grow pt-24 pb-12 px-5 max-w-md mx-auto w-full">
