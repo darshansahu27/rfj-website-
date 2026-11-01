@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -47,7 +46,7 @@ function SignupForm() {
     let userCreated = false;
 
     try {
-      // Step 1: Create the Firebase account.
+      // Step 1: Create the Firebase Authentication account.
       const credential = await createUserWithEmailAndPassword(
         auth,
         trimmedEmail,
@@ -61,44 +60,33 @@ function SignupForm() {
         displayName: trimmedName,
       });
 
-      // Step 3: Get a Firebase ID token.
+      // Step 3: Obtain a Firebase ID token for backend authentication.
       const idToken = await credential.user.getIdToken();
 
-      
-      
-      // Step 4: Resolve and validate the deployed backend URL.
+      // Step 4: Resolve the deployed backend URL.
       const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
-
-      // TEMPORARY DEBUGGING — remove after fixing the issue.
-      console.log("Production mode:", import.meta.env.PROD);
-      console.log(
-        "Configured API URL:",
-        JSON.stringify(configuredApiUrl)
-      );
 
       if (!configuredApiUrl) {
         throw new Error(
-          "Backend URL is missing. Please configure VITE_API_URL in Vercel."
+          "Backend URL is missing. Configure VITE_API_URL in Vercel."
         );
       }
 
+      const apiUrl = configuredApiUrl.replace(/\/+$/, "");
 
-      // Step 5: Create the customer profile through the backend.
-      const response = await fetch(
-        `${apiUrl}/api/profile/customer`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${idToken}`,
-          },
-          body: JSON.stringify({
-            fullName: trimmedName,
-          }),
-        }
-      );
+      // Step 5: Create or retrieve the customer's Supabase profile.
+      const response = await fetch(`${apiUrl}/api/profile/customer`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          fullName: trimmedName,
+        }),
+      });
 
-      // Safely handle JSON, empty responses, and HTML error pages.
+      // Read the response body only once.
       const responseText = await response.text();
       let result = null;
 
@@ -107,9 +95,9 @@ function SignupForm() {
           result = JSON.parse(responseText);
         } catch {
           console.error(
-            "Customer profile API returned non-JSON:",
+            "Customer profile API returned a non-JSON response:",
             response.status,
-            responseText.slice(0, 200)
+            responseText.slice(0, 300)
           );
         }
       }
@@ -117,29 +105,38 @@ function SignupForm() {
       if (!response.ok || !result?.success) {
         const apiError = new Error(
           result?.message ||
-            (response.status === 404 || response.status === 405
-              ? "The customer profile endpoint is unavailable. Please contact support."
-              : "Your Firebase account was created, but your customer profile could not be saved. Please contact support.")
+            (response.status === 401
+              ? "Authentication failed. Please try signing up again."
+              : response.status === 403
+                ? "Your customer profile was not authorized. Please contact support."
+                : response.status === 404 || response.status === 405
+                  ? "The customer profile endpoint is unavailable."
+                  : "Your Firebase account was created, but your customer profile could not be saved."
+            )
         );
 
         apiError.status = response.status;
         throw apiError;
       }
 
-      // Step 6: Registration succeeded; continue to the menu.
+      // Step 6: Signup and profile creation succeeded.
       navigate("/menu", { replace: true });
     } catch (err) {
-      console.error("Customer signup failed:", err);
+      console.error("Customer signup failed:", {
+        code: err.code,
+        status: err.status,
+        message: err.message,
+      });
 
-      // Do not delete the Firebase account automatically.
-      // Profile creation may have failed after account creation.
+      // Keep the Firebase account. It may already exist even if
+      // saving the Supabase profile failed. Sign out to end this session.
       if (userCreated) {
         try {
           await signOut(auth);
         } catch (signOutError) {
           console.error(
             "Sign-out after signup failure failed:",
-            signOutError
+            signOutError.message
           );
         }
       }
@@ -159,18 +156,12 @@ function SignupForm() {
         err.message === "Failed to fetch"
       ) {
         setError(
-          "A network error occurred. Please check your connection and try again."
-        );
-      } else if (err.status === 404 || err.status === 405) {
-        setError(
-          "The customer profile service is unavailable. Please try again later."
+          "A network error occurred. Check your connection and backend URL."
         );
       } else if (err.status) {
         setError(err.message);
       } else {
-        setError(
-          err.message || "Signup failed. Please try again."
-        );
+        setError(err.message || "Signup failed. Please try again.");
       }
     } finally {
       setLoading(false);
