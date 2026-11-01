@@ -293,10 +293,19 @@ const [cartPrices, setCartPrices] = useState(() => {
         setMenuLoading(true);
         setMenuError("");
 
-        const response = await fetch(
-          `${API_URL}/api/menu`,
-          { signal: controller.signal }
-        );
+        
+const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
+
+if (!configuredApiUrl) {
+  throw new Error("VITE_API_URL is not configured.");
+}
+
+const apiUrl = configuredApiUrl.replace(/\/+$/, "");
+
+const response = await fetch(`${apiUrl}/api/menu`, {
+  signal: controller.signal,
+});
+
 
         if (!response.ok) {
           throw new Error(`Menu request failed (${response.status})`);
