@@ -5,6 +5,23 @@ import { auth } from "../firebase";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const CART_STORAGE_KEY = "rfj_cart_items";
+function loadRazorpayScript() {
+  return new Promise((resolve) => {
+    if (window.Razorpay) {
+      resolve(true);
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+
+    document.body.appendChild(script);
+  });
+}
 
 const EMPTY_DETAILS = {
   name: "",
@@ -51,6 +68,7 @@ function CustomerCheckoutForm() {
     address: "",
   });
   const [paymentMethod, setPaymentMethod] = useState("upi");
+  const [pendingOrder, setPendingOrder] = useState(null);
 
   const loadCustomerDetails = useCallback(async () => {
     setIsLoadingProfile(true);
@@ -265,101 +283,279 @@ const handleSaveDetails = async () => {
 
   const handleBack = () => navigate("/customercart");
 
-  const handlePayNow = async () => {
-    if (isSubmitting) return;
+  
+const handlePayNow = async () => {
+  if (isSubmitting) return;
 
-    if (!auth.currentUser) {
-      setCheckoutError("Please sign in to place your order.");
+  if (!auth.currentUser) {
+    setCheckoutError("Please sign in to place your order.");
+    return;
+  }
+
+  if (!cartItems.length) {
+    setCheckoutError("Your cart is empty. Add items before checking out.");
+    return;
+  }
+
+  if (isEditing) {
+    const errors = validateDetails();
+    setFormErrors(errors);
+
+    if (Object.values(errors).some(Boolean)) {
+      setCheckoutError("Please correct the delivery details above.");
       return;
     }
 
-    if (!cartItems.length) {
-      setCheckoutError("Your cart is empty. Add items before checking out.");
-      return;
-    }
+    setCheckoutError(
+      "Please save your delivery details before placing the order."
+    );
+    return;
+  }
 
-    if (isEditing) {
-      const errors = validateDetails();
-      setFormErrors(errors);
+  const errors = validateDetails(customerDetails);
+  setFormErrors(errors);
 
-      if (Object.values(errors).some(Boolean)) {
-        setCheckoutError("Please correct the delivery details above.");
-        return;
+  if (Object.values(errors).some(Boolean)) {
+    setCheckoutError(
+      Object.values(errors).filter(Boolean).join(" ")
+    );
+    setEditDetails({ ...customerDetails });
+    setIsEditing(true);
+    return;
+  }
+
+  setIsSubmitting(true);
+  setCheckoutError("");
+
+  try {
+    const user = auth.currentUser;
+    const token = await user.getIdToken();
+
+    // STEP 1: Create an RFJ order if one is not already pending.
+    let orderToPay = pendingOrder;
+
+    if (!orderToPay) {
+      const orderResponse = await fetch(
+        `${API_URL}/api/orders/customer`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            items: cartItems.map((item) => ({
+              id: String(item.id),
+              quantity: Number(item.quantity),
+            })),
+            name: customerDetails.name,
+            phone: customerDetails.phone,
+            addressLine: customerDetails.address,
+            landmark: customerDetails.landmark,
+            paymentMethod,
+          }),
+        }
+      );
+
+      const orderResult = await orderResponse.json().catch(() => ({}));
+
+      if (
+        !orderResponse.ok ||
+        !orderResult.success ||
+        !orderResult.order ||
+        !orderResult.order.id
+      ) {
+        throw new Error(
+          orderResult.message || "Unable to create your order."
+        );
       }
 
-      setCheckoutError("Please save your delivery details before placing the order.");
-      return;
+      orderToPay = orderResult.order;
+      setPendingOrder(orderToPay);
     }
-const errors = validateDetails(customerDetails);
-console.log("Checkout details:", customerDetails);
-console.log("Checkout validation errors:", errors);
-setFormErrors(errors);
 
-if (Object.values(errors).some(Boolean)) {
-  const messages = Object.values(errors).filter(Boolean);
-  setCheckoutError(messages.join(" "));
-  setEditDetails({ ...customerDetails });
-  setIsEditing(true);
-  return;
-}
-
-    
-
-    setIsSubmitting(true);
-    setCheckoutError("");
-
-    try {
-      const token = await auth.currentUser.getIdToken();
-
-      const response = await fetch(`${API_URL}/api/orders/customer`, {
+    // STEP 2: Ask the backend to create a Razorpay order.
+    const paymentResponse = await fetch(
+      `${API_URL}/api/payments/create`,
+      {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          items: cartItems.map((item) => ({
-            id: String(item.id),
-            quantity: Number(item.quantity),
-          })),
+          orderId: orderToPay.id,
+          paymentMethod,
           name: customerDetails.name,
           phone: customerDetails.phone,
-          addressLine: customerDetails.address,
-          landmark: customerDetails.landmark,
-          // Included for compatibility with the checkout selection.
-          // The current backend treats this as simulated checkout only.
-          paymentMethod,
         }),
-      });
+      }
+    );
 
-      const result = await response.json().catch(() => ({}));
+    const paymentResult = await paymentResponse.json().catch(() => ({}));
 
-      if (!response.ok || !result.success || !result.order) {
-        throw new Error(
-          result.message || "We couldn't place your order. Please try again."
-        );
+    if (!paymentResponse.ok || !paymentResult.success) {
+      if (paymentResponse.status === 410) {
+        setPendingOrder(null);
       }
 
-      // Clear the cart only after the backend confirms order creation.
-      localStorage.removeItem(CART_STORAGE_KEY);
-      setCartItems([]);
-
-      navigate("/paymentconfirmed", {
-        state: {
-          order: result.order,
-          simulatedPayment: true,
-          paymentMethod,
-        },
-      });
-    } catch (error) {
-      console.error("Checkout failed:", error);
-      setCheckoutError(
-        error.message || "We couldn't place your order. Please try again."
+      throw new Error(
+        paymentResult.message || "Unable to start Razorpay payment."
       );
-    } finally {
-      setIsSubmitting(false);
     }
-  };
+
+    if (
+      !paymentResult.razorpay ||
+      !paymentResult.razorpay.keyId ||
+      !paymentResult.razorpay.orderId
+    ) {
+      throw new Error("The backend did not return valid Razorpay details.");
+    }
+
+    // STEP 3: Load Razorpay Checkout.
+    const scriptLoaded = await loadRazorpayScript();
+
+    if (!scriptLoaded || !window.Razorpay) {
+      throw new Error(
+        "Razorpay Checkout could not load. Please check your internet connection and try again."
+      );
+    }
+
+    // STEP 4: Configure Razorpay Checkout.
+    const options = {
+      key: paymentResult.razorpay.keyId,
+      amount: paymentResult.razorpay.amount,
+      currency: paymentResult.razorpay.currency || "INR",
+      name: "RFJ - Rohit Food Junction",
+      description: "Food order payment",
+      order_id: paymentResult.razorpay.orderId,
+
+      prefill: {
+        name: paymentResult.customer?.name || customerDetails.name,
+        email: paymentResult.customer?.email || "",
+        contact: paymentResult.customer?.contact || customerDetails.phone,
+      },
+
+      notes: {
+        rfj_order_id: orderToPay.id,
+      },
+
+      theme: {
+        color: "#b32d0f",
+      },
+
+      // STEP 5: Verify payment on your backend.
+      handler: async function (razorpayResponse) {
+        try {
+          const verifyToken = await auth.currentUser.getIdToken();
+
+          const verifyResponse = await fetch(
+            `${API_URL}/api/payments/verify`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${verifyToken}`,
+              },
+              body: JSON.stringify({
+                orderId: orderToPay.id,
+                razorpay_order_id: razorpayResponse.razorpay_order_id,
+                razorpay_payment_id: razorpayResponse.razorpay_payment_id,
+                razorpay_signature: razorpayResponse.razorpay_signature,
+              }),
+            }
+          );
+
+          const verifyResult = await verifyResponse.json().catch(() => ({}));
+
+          if (
+            !verifyResponse.ok ||
+            !verifyResult.success ||
+            verifyResult.paymentStatus !== "successful"
+          ) {
+            if (verifyResult.paymentStatus === "successful") {
+              setCheckoutError(
+                "Your payment was received, but the order could not be confirmed automatically. Please contact Rohit Food Junction before attempting another payment."
+              );
+            } else {
+              setCheckoutError(
+                verifyResult.message ||
+                  "Payment verification could not be completed. Please check your order status before retrying."
+              );
+            }
+
+            setIsSubmitting(false);
+            return;
+          }
+
+          // STEP 6: Clear the cart only after backend verification succeeds.
+          localStorage.removeItem(CART_STORAGE_KEY);
+          setCartItems([]);
+          setPendingOrder(null);
+          setIsSubmitting(false);
+
+          // STEP 7: Navigate to the verified confirmation page.
+          navigate("/paymentconfirmed", {
+            state: {
+              order: orderToPay,
+              paymentVerified: true,
+              paymentStatus: "successful",
+              paymentMethod,
+              paymentId: razorpayResponse.razorpay_payment_id,
+            },
+          });
+        } catch (verifyError) {
+          console.error("Payment verification failed:", verifyError);
+
+          setCheckoutError(
+            "We could not confirm your payment because of a connection problem. Please check your order status before attempting another payment."
+          );
+
+          setIsSubmitting(false);
+        }
+      },
+
+      modal: {
+        ondismiss: function () {
+          setIsSubmitting(false);
+          setCheckoutError(
+            "Payment was not completed. Your cart is safe and you can retry payment."
+          );
+        },
+      },
+    };
+
+    // STEP 8: Open Razorpay Checkout.
+    const razorpayCheckout = new window.Razorpay(options);
+
+    razorpayCheckout.on("payment.failed", function (response) {
+  console.error("Razorpay payment failed:", response.error);
+
+  setIsSubmitting(false);
+
+  navigate("/paymentfailed", {
+    state: {
+      paymentFailed: true,
+      order: orderToPay,
+      paymentMethod,
+      errorMessage:
+        response.error?.description || "Your payment could not be completed.",
+    },
+  });
+});
+
+    razorpayCheckout.open();
+  } catch (error) {
+    console.error("Checkout payment error:", error);
+
+    setCheckoutError(
+      error.message || "Unable to start payment. Please try again."
+    );
+
+    setIsSubmitting(false);
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-[#fff8f5] text-[#1e1b18]">
@@ -619,9 +815,9 @@ if (Object.values(errors).some(Boolean)) {
               </h2>
 
               {[
-                { id: "upi", title: "UPI", description: "Google Pay, PhonePe, Paytm" },
-                { id: "card", title: "Debit/Credit Card", description: "Visa, Mastercard, RuPay" },
-                { id: "online", title: "Online Payment", description: "Simulated checkout only" },
+                { id: "upi", title: "UPI", description: "Pay using available UPI options" },
+{ id: "card", title: "Debit/Credit Card", description: "Pay using available card options" },
+{ id: "online", title: "Online Payment", description: "Secure payment through Razorpay" },
               ].map((method) => (
                 <button
                   key={method.id}
@@ -669,7 +865,7 @@ if (Object.values(errors).some(Boolean)) {
 
             <div className="mb-4 rounded-lg bg-[#f7eee9] px-3 py-2">
               <p className="text-[9px] leading-4 text-[#5a413b]">
-                This checkout is simulated. No real payment is collected.
+                Secure payments powered by Razorpay. Your order is confirmed after successful payment verification.
               </p>
             </div>
           </>
@@ -686,9 +882,9 @@ if (Object.values(errors).some(Boolean)) {
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#b32d0f] py-3 text-[12px] font-bold text-white shadow-md transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting
-                ? "Placing Order…"
-                : `Place Order · ₹${formatPrice(grandTotal)}`}
-              {!isSubmitting && <span className="text-base">→</span>}
+  ? "Starting Secure Payment…"
+  : `Pay Now · ₹${formatPrice(grandTotal)}`}
+{!isSubmitting && <span className="text-base">→</span>}
             </button>
           </div>
         </footer>
