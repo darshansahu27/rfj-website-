@@ -4,14 +4,28 @@ import cors from "cors";
 import supabase from "./supabase.js";
 import menuRoutes from "./routes/menu.routes.js";
 import orderRoutes from "./routes/orderRoutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
 
 const app = express();
 
+
 app.use(cors());
+
+// Razorpay webhook must receive the original raw request body.
+// This must be registered BEFORE express.json().
+app.use(
+  "/api/payments/webhook",
+  express.raw({ type: "application/json" })
+);
+
+// Parse JSON for all other API routes.
 app.use(express.json());
+
 app.use("/api/menu", menuRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/profile", profileRoutes);
+app.use("/api/payments", paymentRoutes);
+
 
 app.get("/api/test", (req, res) => {
   res.json({

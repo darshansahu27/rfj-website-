@@ -27,7 +27,7 @@ import ManagerOrderDetails from "./pages/managerorderdetails";
 
 import CustomerProfile from "./pages/customerprofile";
 import ProtectedRoute from "./components/protectedroutes";
-import ManagerOrderProvider from "./components/managerordercontext";
+import { ManagerOrderProvider } from "./components/managerordercontext";
 
 function App() {
   return (

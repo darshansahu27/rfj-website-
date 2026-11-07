@@ -1,7 +1,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase";
+
 import OrderProgress from "../components/orderprogress";
 import CurrentStatus from "../components/currentstatus";
 import OrderDetails from "../components/orderdetails";
@@ -13,7 +15,7 @@ import TrackingHeader from "../components/trackingheader";
 
 const API_URL = (
   import.meta.env.VITE_API_URL || "http://localhost:5000"
-).replace(/\/$/, "");
+).replace(/\/+$/, "");
 
 function OrderTracking() {
   const { id } = useParams();
@@ -22,48 +24,92 @@ function OrderTracking() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const [user, setUser] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
+
+  // Wait until Firebase restores the authentication session.
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      (currentUser) => {
+        setUser(currentUser);
+        setAuthReady(true);
+      },
+      (authError) => {
+        console.error("Authentication error:", authError);
+        setUser(null);
+        setAuthReady(true);
+        setError("Unable to verify your account. Please sign in again.");
+        setLoading(false);
+      }
+    );
+
+    return unsubscribe;
+  }, []);
+
   const fetchOrder = useCallback(
     async (showLoading = false) => {
+      if (!id) {
+        setError("Order ID is missing.");
+        setOrder(null);
+        setLoading(false);
+        return;
+      }
+
+      if (!user) {
+        setError(
+          "Please sign in with the customer account used to place this order."
+        );
+        setOrder(null);
+        setLoading(false);
+        return;
+      }
+
       if (showLoading) {
         setLoading(true);
       }
 
       try {
-        const user = auth.currentUser;
-
-        if (!user) {
-          setError(
-            "Please sign in with the customer account used to place this order."
-          );
-          setOrder(null);
-          return;
-        }
-
         const token = await user.getIdToken();
 
         const response = await fetch(
           `${API_URL}/api/orders/track/${encodeURIComponent(id)}`,
           {
+            method: "GET",
             headers: {
               Authorization: `Bearer ${token}`,
+              Accept: "application/json",
             },
           }
         );
 
-        const result = await response.json();
+        const responseText = await response.text();
+
+        let result;
+
+        try {
+          result = responseText ? JSON.parse(responseText) : {};
+        } catch {
+          throw new Error("The server returned an invalid response.");
+        }
 
         if (!response.ok || !result.success || !result.order) {
           throw new Error(
-            result.message || "Unable to load this order."
+            result.message || `Unable to load order (${response.status}).`
           );
         }
 
         setOrder(result.order);
         setError("");
       } catch (err) {
-        // Preserve the last successfully loaded order during refresh failures.
-        setError(err.message || "Unable to load order tracking.");
+        console.error("Order tracking error:", err);
 
+        setError(
+          err.message || "Unable to load order tracking."
+        );
+
+        // Keep an already-loaded order visible if a background
+        // refresh fails.
         if (showLoading) {
           setOrder(null);
         }
@@ -73,33 +119,115 @@ function OrderTracking() {
         }
       }
     },
-    [id]
+    [id, user]
   );
 
+  // Fetch initially and refresh every 15 seconds.
   useEffect(() => {
-    let active = true;
-    let interval;
+    if (!authReady) return;
 
-    const load = async () => {
-      if (!active) return;
-      await fetchOrder(true);
+    if (!user) {
+      setError(
+        "Please sign in with the customer account used to place this order."
+      );
+      setOrder(null);
+      setLoading(false);
+      return;
+    }
+
+    let active = true;
+    let inFlight = false;
+    let controller = null;
+
+    const loadOrder = async (showLoading = false) => {
+      if (!active || inFlight) return;
+
+      inFlight = true;
+      controller = new AbortController();
+
+      try {
+        if (!id) {
+          setError("Order ID is missing.");
+          setOrder(null);
+          setLoading(false);
+          return;
+        }
+
+        if (showLoading) {
+          setLoading(true);
+        }
+
+        const token = await user.getIdToken();
+
+        if (!active) return;
+
+        const response = await fetch(
+          `${API_URL}/api/orders/track/${encodeURIComponent(id)}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json",
+            },
+            signal: controller.signal,
+          }
+        );
+
+        const responseText = await response.text();
+
+        let result;
+
+        try {
+          result = responseText ? JSON.parse(responseText) : {};
+        } catch {
+          throw new Error("The server returned an invalid response.");
+        }
+
+        if (!response.ok || !result.success || !result.order) {
+          throw new Error(
+            result.message || "Unable to load this order."
+          );
+        }
+
+        if (!active) return;
+
+        setOrder(result.order);
+        setError("");
+      } catch (err) {
+        if (!active || err.name === "AbortError") return;
+
+        console.error("Order tracking error:", err);
+
+        setError(
+          err.message || "Unable to load order tracking."
+        );
+
+        if (showLoading) {
+          setOrder(null);
+        }
+      } finally {
+        inFlight = false;
+
+        if (active && showLoading) {
+          setLoading(false);
+        }
+      }
     };
 
-    load();
+    loadOrder(true);
 
-    interval = window.setInterval(() => {
-      if (active) {
-        fetchOrder(false);
-      }
+    const interval = window.setInterval(() => {
+      loadOrder(false);
     }, 15000);
 
     return () => {
       active = false;
       window.clearInterval(interval);
+      controller?.abort();
     };
-  }, [fetchOrder]);
+  }, [authReady, user, id]);
 
-  if (loading) {
+  if (!authReady || loading) {
     return (
       <main className="min-h-screen bg-[#fff8f5] px-4 py-10">
         <div className="mx-auto max-w-md text-center text-sm text-[#6f6661]">
@@ -142,13 +270,21 @@ function OrderTracking() {
     );
   }
 
-  const status = String(order.status || "confirmed").toLowerCase();
+  const status = String(order.status || "confirmed")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
   const isCancelled = status === "cancelled";
+  const isRejected = status === "rejected";
   const isDelivered = status === "delivered";
+
+  const isInactive = isCancelled || isRejected;
 
   return (
     <main className="min-h-screen bg-[#fff8f5] px-4 py-6">
       <div className="mx-auto w-full max-w-md space-y-4">
+
         <TrackingHeader />
 
         {isDelivered ? (
@@ -174,7 +310,7 @@ function OrderTracking() {
               Your Order Has Been Delivered!
             </h1>
 
-            <p className="mt-2 text-sm leading-6 text-[#6f6661]">
+            <p className="mt-2 text-sm leading-6 text-[#6f6666]">
               Your delicious food has arrived. Thank you for
               ordering from Rohit Food Junction!
             </p>
@@ -186,15 +322,16 @@ function OrderTracking() {
               Continue Shopping
             </Link>
           </section>
-        ) : isCancelled ? (
+        ) : isInactive ? (
           <section className="rounded-xl border border-red-200 bg-white p-5">
             <h2 className="text-lg font-bold text-red-700">
-              Order Cancelled
+              {isRejected ? "Order Rejected" : "Order Cancelled"}
             </h2>
 
             <p className="mt-2 text-sm text-[#6f6661]">
-              This order has been cancelled. Its tracking progress
-              is no longer active.
+              {isRejected
+                ? "The restaurant has rejected this order. Its tracking progress is no longer active."
+                : "This order has been cancelled. Its tracking progress is no longer active."}
             </p>
 
             <Link
@@ -210,7 +347,7 @@ function OrderTracking() {
 
         {!isDelivered && (
           <>
-            {!isCancelled && (
+            {!isInactive && (
               <CurrentStatus currentStatus={status} />
             )}
 
@@ -229,6 +366,7 @@ function OrderTracking() {
             </p>
           </>
         )}
+
       </div>
     </main>
   );

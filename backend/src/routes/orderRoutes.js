@@ -7,14 +7,23 @@ import requireManagerOrOwner from "../middleware/requireManagerOrOwner.js";
 
 const router = express.Router();
 
-const VALID_STATUSES = [
+const DELIVERY_STATUSES = [
   "confirmed",
-  "preparing",
-  "ready",
   "out_for_delivery",
   "delivered",
+];
+
+const VALID_STATUSES = [
+  ...DELIVERY_STATUSES,
   "cancelled",
 ];
+
+const ALLOWED_TRANSITIONS = {
+  confirmed: ["out_for_delivery", "cancelled"],
+  out_for_delivery: ["delivered"],
+  delivered: [],
+  cancelled: [],
+};
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -330,7 +339,10 @@ router.post("/customer", verifyFirebaseToken, async (req, res) => {
           delivery_fee: deliveryFee,
           discount,
           total_amount: totalAmount,
-          status: "confirmed",
+          status: "pending_payment",
+          payment_expires_at: new Date(
+          Date.now() + 15 * 60 * 1000
+          ).toISOString(),
         })
         .select(
           "id, order_number, subtotal, delivery_fee, discount, total_amount, status"
@@ -367,14 +379,14 @@ router.post("/customer", verifyFirebaseToken, async (req, res) => {
     }
 
     return res.status(201).json({
-      success: true,
-      message: "Order created successfully.",
-      order: {
-        ...createdOrder,
-        gst,
-      },
-      simulatedPayment: true,
-    });
+  success: true,
+  message: "Order created. Payment is required to confirm it.",
+  order: {
+    ...createdOrder,
+    gst,
+  },
+  paymentRequired: true,
+});
   } catch (error) {
     console.error("Customer order creation failed:", error.message);
 
@@ -686,6 +698,7 @@ router.get(
  * Updates an order's status.
  * Requires a valid Firebase token and a manager or owner role.
  */
+
 router.patch(
   "/:id/status",
   verifyFirebaseToken,
@@ -695,6 +708,21 @@ router.patch(
       const { id } = req.params;
       const { status } = req.body ?? {};
 
+      const VALID_STATUSES = [
+        "confirmed",
+        "out_for_delivery",
+        "delivered",
+        "cancelled",
+      ];
+
+      const ALLOWED_TRANSITIONS = {
+        confirmed: ["out_for_delivery", "cancelled"],
+        out_for_delivery: ["delivered"],
+        delivered: [],
+        cancelled: [],
+      };
+
+      // Validate requested status.
       if (
         typeof status !== "string" ||
         !VALID_STATUSES.includes(status)
@@ -706,10 +734,56 @@ router.patch(
         });
       }
 
+      // Fetch the existing order before updating it.
+      const { data: existingOrder, error: fetchError } =
+        await supabaseAdmin
+          .from("orders")
+          .select("id, order_number, status")
+          .eq("id", id)
+          .maybeSingle();
+
+      if (fetchError) {
+        console.error(
+          "Fetch order before status update error:",
+          fetchError.message
+        );
+
+        return res.status(500).json({
+          success: false,
+          message: "Failed to verify current order status.",
+        });
+      }
+
+      if (!existingOrder) {
+        return res.status(404).json({
+          success: false,
+          message: "Order not found.",
+        });
+      }
+
+      const currentStatus = existingOrder.status;
+
+      // Prevent backward transitions, skipped stages and repeated updates.
+      const permittedTransitions =
+        ALLOWED_TRANSITIONS[currentStatus];
+
+      if (
+        !permittedTransitions ||
+        !permittedTransitions.includes(status)
+      ) {
+        return res.status(409).json({
+          success: false,
+          message: `Cannot change order status from "${currentStatus}" to "${status}".`,
+          currentStatus,
+          permittedNextStatuses: permittedTransitions || [],
+        });
+      }
+
+      // Prepare database updates.
       const updates = { status };
 
-      if (status === "confirmed") {
-        updates.accepted_at = new Date().toISOString();
+      if (status === "out_for_delivery") {
+        updates.out_for_delivery_at = new Date().toISOString();
       }
 
       if (status === "delivered") {
@@ -724,11 +798,15 @@ router.patch(
         .from("orders")
         .update(updates)
         .eq("id", id)
+        .eq("status", currentStatus)
         .select("id, order_number, status")
         .maybeSingle();
 
       if (error) {
-        console.error("Update order status error:", error.message);
+        console.error(
+          "Update order status error:",
+          error.message
+        );
 
         return res.status(500).json({
           success: false,
@@ -737,9 +815,10 @@ router.patch(
       }
 
       if (!data) {
-        return res.status(404).json({
+        return res.status(409).json({
           success: false,
-          message: "Order not found.",
+          message:
+            "Order status changed before this update. Refresh and try again.",
         });
       }
 
@@ -758,5 +837,6 @@ router.patch(
     }
   }
 );
+
 
 export default router;

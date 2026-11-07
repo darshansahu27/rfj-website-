@@ -7,7 +7,7 @@ function ManagerActiveOrders() {
   const {
     activeOrders,
     rejectOrder,
-    deliverOrder,
+    advanceOrder,
   } = useManagerOrders();
 
   return (
@@ -35,7 +35,12 @@ function ManagerActiveOrders() {
             payment={order.payment}
             total={order.total}
             onReject={() => rejectOrder(order.orderId)}
-            onDelivered={() => deliverOrder(order.orderId)}
+            onSendForDelivery={() =>
+              advanceOrder(order.orderId)
+            }
+            onDelivered={() =>
+              advanceOrder(order.orderId)
+            }
           />
         ))}
       </section>

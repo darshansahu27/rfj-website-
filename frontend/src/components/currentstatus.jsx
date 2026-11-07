@@ -17,27 +17,15 @@ function ClockIcon() {
   );
 }
 
-function CurrentStatus({ currentStatus = "preparing" }) {
+function CurrentStatus({ currentStatus = "confirmed" }) {
   const statusDetails = {
     confirmed: {
       title: "Order Confirmed",
       message: "Your order has been confirmed by the restaurant.",
-      time: "Preparing your order soon",
+      time: "Your order will be sent for delivery soon",
     },
 
-    preparing: {
-      title: "Preparing Your Order",
-      message: "Our kitchen is preparing your food fresh for you.",
-      time: "Estimated preparation time: 20–30 minutes",
-    },
-
-    ready: {
-      title: "Your Order Is Ready",
-      message: "Your food is ready and waiting for delivery.",
-      time: "Getting ready for delivery",
-    },
-
-    delivery: {
+    out_for_delivery: {
       title: "Out for Delivery",
       message: "Your order is on its way to you.",
       time: "Please keep your phone available",
@@ -50,12 +38,20 @@ function CurrentStatus({ currentStatus = "preparing" }) {
     },
   };
 
-  const current = statusDetails[currentStatus] || statusDetails.preparing;
+  const normalizedStatus = String(currentStatus)
+    .trim()
+    .toLowerCase()
+    .replaceAll(" ", "_")
+    .replaceAll("-", "_");
+
+  const current = statusDetails[normalizedStatus] || {
+  title: "Order Status",
+  message: "We are checking the latest status of your order.",
+  time: "Please check again shortly",
+};
 
   return (
     <section className="mt-4 rounded-xl border border-[rgba(142,112,106,0.1)] bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
-
-      {/* Current status heading */}
       <div className="mb-4 flex items-center gap-2">
         <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-[#8d1900]" />
 
@@ -64,15 +60,11 @@ function CurrentStatus({ currentStatus = "preparing" }) {
         </span>
       </div>
 
-      {/* Status information */}
       <div className="flex items-start gap-4">
-
-        {/* Clock icon */}
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#f9ebe6] text-[#8d1900]">
           <ClockIcon />
         </div>
 
-        {/* Text */}
         <div className="min-w-0">
           <h2 className="text-lg font-bold text-[#1e1b18]">
             {current.title}
@@ -92,7 +84,6 @@ function CurrentStatus({ currentStatus = "preparing" }) {
         </div>
       </div>
 
-      {/* Bottom note */}
       <div className="mt-5 border-t border-[#efe6e2] pt-4">
         <p className="text-xs leading-5 text-[#8a817c]">
           Your order status will update as your order moves through each step.

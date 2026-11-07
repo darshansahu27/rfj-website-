@@ -68,7 +68,7 @@ function ProfilePhotoSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-end justify-center">
+    <div className="fixed inset-0 z-70 flex items-end justify-center">
       <button
         type="button"
         onClick={onClose}
