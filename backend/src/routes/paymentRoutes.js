@@ -201,12 +201,12 @@ router.post("/verify", verifyFirebaseToken, async (req, res) => {
       typeof razorpay_order_id !== "string" ||
       typeof razorpay_payment_id !== "string" ||
       typeof razorpay_signature !== "string"
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Missing or invalid payment verification details.",
-      });
-    }
+    ) if (!/^[a-f0-9]{64}$/i.test(razorpay_signature)) {
+  return res.status(400).json({
+    success: false,
+    message: "Invalid payment signature format.",
+  });
+}
 
     const { data: profile, error: profileError } =
       await supabaseAdmin
@@ -411,26 +411,7 @@ router.post("/verify", verifyFirebaseToken, async (req, res) => {
     });
 
 
-    // An already-confirmed order is safe to return for an idempotent retry.
-    if (order.status === "confirmed") {
-      return res.json({
-        success: true,
-        message: "Payment was already verified.",
-        order: {
-          id: order.id,
-          status: order.status,
-        },
-        paymentStatus: "successful",
-      });
-    }
 
-    return res.status(409).json({
-      success: false,
-      message:
-        "Payment was captured, but this order is no longer awaiting payment. Please contact RFJ support.",
-      paymentStatus: "successful",
-      orderStatus: order.status,
-    });
   } catch (error) {
     console.error("Razorpay payment verification failed:", error);
 
