@@ -558,7 +558,7 @@ const handlePayNow = async () => {
 
 
   return (
-    <div className="min-h-screen bg-[#fff8f5] text-[#1e1b18]">
+    <div className="customer-checkout-page min-h-screen bg-[#fff8f5] text-[#1e1b18]">
       <header className="fixed top-0 left-0 z-50 w-full border-b border-[#e2bfb7]/30 bg-white">
         <div className="mx-auto flex h-14 w-full max-w-lg items-center px-4">
           <button

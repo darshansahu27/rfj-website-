@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+
 /* =========================================================
    RFJ GLOBAL DESIGN SYSTEM
    ========================================================= */
@@ -228,4 +229,14 @@ h4,
 h5,
 h6 {
   font-family: "Playfair Display", serif;
+}
+/* Roboto typography for Cart and Checkout pages */
+.customer-cart-page,
+.customer-checkout-page {
+  font-family: "Roboto", sans-serif;
+}
+
+.customer-cart-page :not(.material-symbols-outlined),
+.customer-checkout-page :not(.material-symbols-outlined) {
+  font-family: "Roboto", sans-serif !important;
 }

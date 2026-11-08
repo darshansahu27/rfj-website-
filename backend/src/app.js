@@ -7,6 +7,13 @@ import orderRoutes from "./routes/orderRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 
 const app = express();
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "RFJ backend is running",
+    service: "backend",
+  });
+});
 
 
 

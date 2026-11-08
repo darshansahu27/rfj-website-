@@ -193,7 +193,7 @@ function CustomerCartForm() {
     });
 
   return (
-    <div className="min-h-screen bg-[#fff8f5] text-[#1e1b18]">
+    <div className="customer-cart-page min-h-screen bg-[#fff8f5] text-[#1e1b18]">
       {/* Header */}
       <header className="fixed left-0 top-0 z-50 flex h-16 w-full items-center justify-between bg-white/95 px-5 shadow-sm backdrop-blur-md">
         <button
