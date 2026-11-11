@@ -1,3 +1,4 @@
+
 function GlobeIcon() {
   return (
     <svg
@@ -39,6 +40,63 @@ function ShareIcon() {
   );
 }
 
+// RFJ Google Business Profile
+const GOOGLE_MAPS_URL =
+   "https://www.google.com/maps/search/?api=1&query=Rohit%20Food%20Junction";
+
+// Direct Google Review page
+const GOOGLE_REVIEWS_URL =
+  "https://g.page/r/CZKPvAt8YICJEBM/review";
+
+// Restaurant contact number
+const RESTAURANT_PHONE = "+918264380438";
+
+// Check restaurant calling hours using Indian Standard Time.
+function isRestaurantOpenForCalls() {
+  const now = new Date();
+
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now);
+
+  const hours = Number(
+    parts.find((part) => part.type === "hour").value
+  );
+
+  const minutes = Number(
+    parts.find((part) => part.type === "minute").value
+  );
+
+  const currentTime = hours * 60 + minutes;
+
+  const lunchStart = 11 * 60;
+  const lunchEnd = 15 * 60;
+
+  const eveningStart = 18 * 60;
+  const eveningEnd = 23 * 60;
+
+  return (
+    (currentTime >= lunchStart && currentTime < lunchEnd) ||
+    (currentTime >= eveningStart && currentTime < eveningEnd)
+  );
+}
+
+function handleRestaurantContact(event) {
+  if (!isRestaurantOpenForCalls()) {
+    event.preventDefault();
+
+    window.alert(
+      "Rohit Food Junction is currently closed for calls.\n\n" +
+      "Please contact us during:\n" +
+      "Lunch: 11:00 AM – 3:00 PM\n" +
+      "Evening: 6:00 PM – 11:00 PM"
+    );
+  }
+}
+
 function Footer() {
   return (
     <>
@@ -56,7 +114,6 @@ function Footer() {
           max-width: 1280px;
           margin: 0 auto;
           box-sizing: border-box;
-
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -134,11 +191,9 @@ function Footer() {
           border-radius: 50%;
           background: #eee4df;
           color: #1e1b18;
-
           display: flex;
           align-items: center;
           justify-content: center;
-
           cursor: pointer;
           text-decoration: none;
           transition:
@@ -202,6 +257,7 @@ function Footer() {
       <footer className="rfj-footer">
         <div className="rfj-footer-inner">
 
+          {/* Brand */}
           <div className="rfj-footer-brand">
             <p className="rfj-footer-title">
               Rohit Food Junction
@@ -212,31 +268,65 @@ function Footer() {
             </p>
           </div>
 
-          <nav className="rfj-footer-nav">
-            <a href="#contact">Contact</a>
+          {/* Footer navigation */}
+          <nav
+            className="rfj-footer-nav"
+            aria-label="Footer navigation"
+          >
+            <a
+              href={`tel:${RESTAURANT_PHONE}`}
+              onClick={handleRestaurantContact}
+              aria-label="Call Rohit Food Junction during operating hours"
+            >
+              Contact
+            </a>
 
             <span className="rfj-footer-divider">|</span>
 
-            <a href="#address">Address</a>
+            <a
+              href={GOOGLE_MAPS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Address
+            </a>
 
             <span className="rfj-footer-divider">|</span>
 
-            <a href="#hours">Restaurant Hours</a>
+            <a
+              href={GOOGLE_MAPS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Restaurant Hours
+            </a>
 
             <span className="rfj-footer-divider">|</span>
 
-            <a href="#reviews">Reviews</a>
+            <a
+              href={GOOGLE_REVIEWS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Reviews
+            </a>
 
             <span className="rfj-footer-divider">|</span>
 
-            <a href="#login">Login</a>
+            <a href="login">
+              Login
+            </a>
           </nav>
 
+          {/* Footer actions */}
           <div className="rfj-footer-actions">
             <a
-              href="#"
+              href={GOOGLE_MAPS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
               className="rfj-footer-action"
-              aria-label="Website"
+              aria-label="Find Rohit Food Junction on Google Maps"
+              title="Find us on Google Maps"
             >
               <GlobeIcon />
             </a>
@@ -244,13 +334,18 @@ function Footer() {
             <button
               type="button"
               className="rfj-footer-action"
-              aria-label="Share"
+              aria-label="Share Rohit Food Junction"
+              title="Share"
               onClick={() => {
                 if (navigator.share) {
                   navigator.share({
                     title: "Rohit Food Junction",
                     url: window.location.href,
-                  });
+                  }).catch(() => {});
+                } else {
+                  navigator.clipboard?.writeText(
+                    window.location.href
+                  );
                 }
               }}
             >

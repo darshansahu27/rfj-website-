@@ -1,3 +1,8 @@
+
+import { useNavigate } from "react-router-dom";
+
+const RESTAURANT_PHONE = "+918264380438";
+
 function PhoneIcon() {
   return (
     <svg
@@ -47,7 +52,48 @@ function HelpIcon() {
   );
 }
 
+// Check calling hours using Indian Standard Time.
+function isRestaurantOpenForCalls() {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date());
+
+  const hours = Number(
+    parts.find((part) => part.type === "hour").value
+  );
+
+  const minutes = Number(
+    parts.find((part) => part.type === "minute").value
+  );
+
+  const currentTime = hours * 60 + minutes;
+
+  return (
+    (currentTime >= 11 * 60 && currentTime < 15 * 60) ||
+    (currentTime >= 18 * 60 && currentTime < 23 * 60)
+  );
+}
+
 function HelpSupport() {
+  const navigate = useNavigate();
+
+  const handleRestaurantCall = () => {
+    if (!isRestaurantOpenForCalls()) {
+      window.alert(
+        "Rohit Food Junction is currently closed for calls.\n\n" +
+        "Please contact us during:\n" +
+        "Lunch: 11:00 AM – 3:00 PM\n" +
+        "Evening: 6:00 PM – 11:00 PM"
+      );
+      return;
+    }
+
+    window.location.href = `tel:${RESTAURANT_PHONE}`;
+  };
+
   return (
     <section className="mt-4 rounded-xl border border-[rgba(142,112,106,0.1)] bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
 
@@ -73,6 +119,7 @@ function HelpSupport() {
 
         <button
           type="button"
+          onClick={handleRestaurantCall}
           className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#8d1900] px-3 py-2.5 text-xs font-semibold text-[#8d1900] transition hover:bg-[#f9ebe6]"
         >
           <PhoneIcon />
@@ -80,12 +127,30 @@ function HelpSupport() {
         </button>
 
         <button
-          type="button"
-          className="flex-1 rounded-lg bg-[#8d1900] px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-[#721500]"
-        >
-          Contact Support
-        </button>
+  type="button"
+  onClick={handleRestaurantCall}
+  className="flex-1 rounded-lg bg-[#8d1900] px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-[#721500]"
+>
+  Contact Support
+</button>
 
+      </div>
+
+      {/* Calling hours */}
+      <div className="mt-4 rounded-lg bg-[#fff8f5] px-3 py-2.5 text-center">
+        <p className="text-[10px] font-semibold text-[#8d1900]">
+          Restaurant Calling Hours (IST)
+        </p>
+
+        <p className="mt-1 text-[10px] leading-5 text-[#6b5149]">
+          Lunch: 11:00 AM – 3:00 PM
+          <br />
+          Evening: 6:00 PM – 11:00 PM
+        </p>
+
+        <p className="mt-1 text-[10px] text-[#8a817c]">
+          +91 82643 80438
+        </p>
       </div>
     </section>
   );

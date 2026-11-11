@@ -1,4 +1,5 @@
-
+import firebaseAdminAuth from "../config/firebaseAdmin.js";
+import { sendOrderInvoiceEmail } from "../services/emailService.js";
 import { randomUUID, createHmac, timingSafeEqual } from "node:crypto";
 import express from "express";
 import supabaseAdmin from "../config/supabaseAdmin.js";
@@ -11,6 +12,180 @@ const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const RETRY_WINDOW_MINUTES = 15;
+const sendInvoiceForConfirmedOrder = async (orderId, paymentId) => {
+  let logId = null;
+
+  try {
+    const { data: order, error: orderError } = await supabaseAdmin
+      .from("orders")
+      .select(`
+        id,
+        customer_id,
+        order_number,
+        status,
+        subtotal,
+        delivery_fee,
+        discount,
+        total_amount,
+        delivery_address_line,
+        delivery_city,
+        delivery_state,
+        delivery_postal_code,
+        delivery_landmark,
+        created_at
+      `)
+      .eq("id", orderId)
+      .maybeSingle();
+
+    if (orderError) throw orderError;
+
+    if (!order || order.status !== "confirmed") {
+      return { status: "skipped", reason: "Order is not confirmed." };
+    }
+
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .select("firebase_uid, full_name")
+      .eq("id", order.customer_id)
+      .maybeSingle();
+
+    if (profileError) throw profileError;
+    if (!profile?.firebase_uid) throw new Error("Customer Firebase account not found.");
+
+    const firebaseUser = await firebaseAdminAuth.getUser(profile.firebase_uid);
+    const recipientEmail = firebaseUser.email;
+
+    if (!recipientEmail) throw new Error("Customer email address is unavailable.");
+
+    const { data: items, error: itemsError } = await supabaseAdmin
+      .from("order_items")
+      .select("item_name, unit_price_at_order, quantity, subtotal")
+      .eq("order_id", orderId);
+
+    if (itemsError) throw itemsError;
+
+    const { data: payment, error: paymentError } = await supabaseAdmin
+      .from("payments")
+      .select("payment_method, gateway_payment_id")
+      .eq("order_id", orderId)
+      .eq("gateway_payment_id", paymentId)
+      .maybeSingle();
+
+    if (paymentError) throw paymentError;
+
+    // Claim the unique email log for this order.
+    const { data: newLog, error: insertError } = await supabaseAdmin
+      .from("order_email_logs")
+      .insert({
+        order_id: orderId,
+        recipient_email: recipientEmail,
+        email_status: "pending",
+      })
+      .select("id")
+      .single();
+
+    if (!insertError) {
+      logId = newLog.id;
+    } else if (insertError.code === "23505") {
+      // Existing log: retry only if the previous send failed.
+      const { data: existingLog, error: lookupError } = await supabaseAdmin
+        .from("order_email_logs")
+        .select("id, email_status")
+        .eq("order_id", orderId)
+        .maybeSingle();
+
+      if (lookupError) throw lookupError;
+
+      if (!existingLog || existingLog.email_status !== "failed") {
+        return { status: "skipped", reason: "Invoice already sent or being processed." };
+      }
+
+      const { data: retryLog, error: retryError } = await supabaseAdmin
+        .from("order_email_logs")
+        .update({
+          email_status: "pending",
+          recipient_email: recipientEmail,
+          error_message: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingLog.id)
+        .eq("email_status", "failed")
+        .select("id")
+        .maybeSingle();
+
+      if (retryError) throw retryError;
+
+      if (!retryLog) {
+        return { status: "skipped", reason: "Another request is processing this invoice." };
+      }
+
+      logId = retryLog.id;
+    } else {
+      throw insertError;
+    }
+
+    const deliveryAddress = [
+      order.delivery_address_line,
+      order.delivery_landmark,
+      order.delivery_city,
+      order.delivery_state,
+      order.delivery_postal_code,
+    ]
+      .filter(Boolean)
+      .join(", ");
+
+    const emailResult = await sendOrderInvoiceEmail({
+      to: recipientEmail,
+      customerName: profile.full_name || firebaseUser.displayName || "Customer",
+      orderNumber: order.order_number,
+      orderDate: new Date(order.created_at).toLocaleString("en-IN", {
+  timeZone: "Asia/Kolkata",
+}),
+      items: (items || []).map((item) => ({
+        name: item.item_name,
+        quantity: item.quantity,
+        total: item.subtotal,
+      })),
+      subtotal: order.subtotal,
+      deliveryFee: order.delivery_fee,
+      discount: order.discount,
+      totalAmount: order.total_amount,
+      deliveryAddress,
+      paymentMethod: payment?.payment_method || "Online",
+      paymentId,
+    });
+
+    const { error: sentUpdateError } = await supabaseAdmin
+      .from("order_email_logs")
+      .update({
+        email_status: "sent",
+        resend_message_id: emailResult?.id || null,
+        sent_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        error_message: null,
+      })
+      .eq("id", logId);
+
+    if (sentUpdateError) throw sentUpdateError;
+
+    return { status: "sent" };
+  } catch (error) {
+    console.error("RFJ invoice email failed:", error);
+
+    if (logId) {
+      await supabaseAdmin
+        .from("order_email_logs")
+        .update({
+          email_status: "failed",
+          error_message: String(error.message || error).slice(0, 1000),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", logId);
+    }
+
+    return { status: "failed", message: error.message };
+  }
+};
 
 /**
  * POST /api/payments/create
@@ -196,12 +371,19 @@ router.post("/verify", verifyFirebaseToken, async (req, res) => {
       razorpay_signature,
     } = req.body ?? {};
 
-    if (
-      !UUID_REGEX.test(orderId || "") ||
-      typeof razorpay_order_id !== "string" ||
-      typeof razorpay_payment_id !== "string" ||
-      typeof razorpay_signature !== "string"
-    ) if (!/^[a-f0-9]{64}$/i.test(razorpay_signature)) {
+   if (
+  !UUID_REGEX.test(orderId || "") ||
+  typeof razorpay_order_id !== "string" ||
+  typeof razorpay_payment_id !== "string" ||
+  typeof razorpay_signature !== "string"
+) {
+  return res.status(400).json({
+    success: false,
+    message: "Invalid payment verification details.",
+  });
+}
+
+if (!/^[a-f0-9]{64}$/i.test(razorpay_signature)) {
   return res.status(400).json({
     success: false,
     message: "Invalid payment signature format.",
@@ -381,26 +563,39 @@ router.post("/verify", verifyFirebaseToken, async (req, res) => {
         });
       }
 
+            const invoiceEmail = await sendInvoiceForConfirmedOrder(
+        order.id,
+        razorpay_payment_id
+      );
+
       return res.json({
         success: true,
         message: "Payment verified and order confirmed.",
         order: confirmedOrder,
         paymentStatus: "successful",
+        invoiceEmail: invoiceEmail.status,
       });
     }
 
     // Allow safe repeat verification of an already-confirmed order.
     if (order.status === "confirmed") {
-      return res.json({
-        success: true,
-        message: "Payment was already verified.",
-        order: {
-          id: order.id,
-          status: order.status,
-        },
-        paymentStatus: "successful",
-      });
-    }
+  const invoiceEmail = await sendInvoiceForConfirmedOrder(
+    order.id,
+    razorpay_payment_id
+  );
+
+  return res.json({
+    success: true,
+    message: "Payment was already verified.",
+    order: {
+      id: order.id,
+      status: order.status,
+    },
+    paymentStatus: "successful",
+    invoiceEmail: invoiceEmail.status,
+  });
+}
+      
 
     return res.status(409).json({
       success: false,
@@ -620,9 +815,23 @@ router.post("/webhook", async (req, res) => {
       );
     }
 
+        const invoiceEmail = await sendInvoiceForConfirmedOrder(
+      order.id,
+      razorpayPayment.id
+    );
+
+    if (invoiceEmail.status === "failed") {
+      // Ask Razorpay to retry the webhook.
+      return res.status(500).json({
+        success: false,
+        message: "Payment recorded, but invoice email failed.",
+      });
+    }
+
     return res.status(200).json({
       success: true,
       message: "Captured payment event processed.",
+      invoiceEmail: invoiceEmail.status,
     });
   } catch (error) {
     console.error("Razorpay webhook processing failed:", error);

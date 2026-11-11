@@ -1,4 +1,27 @@
+
 import { useNavigate } from "react-router-dom";
+
+const RESTAURANT_PHONE = "+918264380438";
+
+/* Restaurant calling hours (IST) */
+function isRestaurantOpenForCalls() {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date());
+
+  const hours = Number(parts.find((part) => part.type === "hour").value);
+  const minutes = Number(parts.find((part) => part.type === "minute").value);
+
+  const currentTime = hours * 60 + minutes;
+
+  return (
+    (currentTime >= 660 && currentTime < 900) ||
+    (currentTime >= 1080 && currentTime < 1380)
+  );
+}
 
 function OrderCancelledForm() {
   const navigate = useNavigate();
@@ -6,6 +29,18 @@ function OrderCancelledForm() {
   /* Continue Shopping */
   const handleContinueShopping = () => {
     navigate("/menu");
+  };
+
+  /* Call Restaurant / Contact Support */
+  const handleRestaurantCall = () => {
+    if (!isRestaurantOpenForCalls()) {
+      window.alert(
+        "Rohit Food Junction is currently closed for calls.\n\nPlease contact us during:\nLunch: 11:00 AM – 3:00 PM\nEvening: 6:00 PM – 11:00 PM"
+      );
+      return;
+    }
+
+    window.location.href = `tel:${RESTAURANT_PHONE}`;
   };
 
   return (
@@ -24,7 +59,6 @@ function OrderCancelledForm() {
               animation: "cancelFloatPulse 3s ease-in-out infinite",
             }}
           >
-
             {/* Red X */}
             <span
               className="text-[48px] font-bold leading-none text-[#ba1a1a]"
@@ -34,14 +68,12 @@ function OrderCancelledForm() {
             >
               ×
             </span>
-
           </div>
 
           {/* Ambient Glow */}
           <div className="absolute inset-0 -z-10 rounded-full bg-[#ba1a1a]/10 blur-2xl" />
 
         </section>
-
 
         {/* Heading Section */}
         <section className="mb-8 text-center">
@@ -57,7 +89,6 @@ function OrderCancelledForm() {
           </p>
 
         </section>
-
 
         {/* Information Cards */}
         <div className="mb-8 w-full space-y-4">
@@ -83,7 +114,6 @@ function OrderCancelledForm() {
 
           </section>
 
-
           {/* Order Details */}
           <section className="rounded-xl border border-[#e2bfb7]/30 bg-white p-4 shadow-[0_4px_12px_rgba(45,41,38,0.08)]">
 
@@ -98,7 +128,6 @@ function OrderCancelledForm() {
               </h2>
 
             </div>
-
 
             <div className="grid grid-cols-2 gap-y-3">
 
@@ -115,7 +144,6 @@ function OrderCancelledForm() {
 
               </div>
 
-
               {/* Order Amount */}
               <div className="text-right">
 
@@ -128,7 +156,6 @@ function OrderCancelledForm() {
                 </p>
 
               </div>
-
 
               {/* Payment Method */}
               <div>
@@ -147,13 +174,11 @@ function OrderCancelledForm() {
 
           </section>
 
-
           {/* Refund Status */}
           <section className="relative overflow-hidden rounded-xl border border-[#e2bfb7]/30 bg-white p-4 shadow-[0_4px_12px_rgba(45,41,38,0.08)]">
 
             {/* Green Status Border */}
             <div className="absolute left-0 top-0 h-full w-1 bg-[#2e7d32]" />
-
 
             <div className="mb-3 flex items-center justify-between gap-2">
 
@@ -169,7 +194,6 @@ function OrderCancelledForm() {
 
               </div>
 
-
               {/* Refund Initiated Badge */}
               <div className="flex items-center gap-1 rounded-full bg-[#e8f5e9] px-2 py-1">
 
@@ -183,13 +207,11 @@ function OrderCancelledForm() {
 
             </div>
 
-
             <p className="mb-2 text-[13px] leading-5 text-[#1e1b18]">
               Your refund has been initiated successfully.
               Expected Refund Time:{" "}
               <strong>3–5 Business Days.</strong>
             </p>
-
 
             <p className="text-[10px] italic leading-4 text-[#5a413b]">
               The refund will be credited to the original payment method
@@ -199,7 +221,6 @@ function OrderCancelledForm() {
           </section>
 
         </div>
-
 
         {/* Continue Shopping */}
         <div className="w-full">
@@ -214,20 +235,22 @@ function OrderCancelledForm() {
 
         </div>
 
-
         {/* Contact Support */}
         <p className="mt-6 text-center text-[10px] text-[#5a413b]">
 
           Need help?{" "}
 
-          <span className="cursor-pointer underline transition-colors hover:text-[#b32d0f]">
+          <button
+            type="button"
+            onClick={handleRestaurantCall}
+            className="cursor-pointer underline transition-colors hover:text-[#b32d0f]"
+          >
             Contact Support
-          </span>
+          </button>
 
         </p>
 
       </main>
-
 
       {/* Cancellation Animation */}
       <style>

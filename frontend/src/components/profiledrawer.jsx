@@ -1,7 +1,61 @@
+
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "../firebase";
+
+// RFJ Google Business Profile links
+const GOOGLE_REVIEWS_URL =
+  "https://g.page/r/CZKPvAt8YICJEBM/review";
+
+// Restaurant contact number
+const RESTAURANT_PHONE = "+918264380438";
+
+// Check restaurant calling hours using Indian Standard Time.
+function isRestaurantOpenForCalls() {
+  const now = new Date();
+
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now);
+
+  const hours = Number(
+    parts.find((part) => part.type === "hour").value
+  );
+
+  const minutes = Number(
+    parts.find((part) => part.type === "minute").value
+  );
+
+  const currentTime = hours * 60 + minutes;
+
+  const lunchStart = 11 * 60;
+  const lunchEnd = 15 * 60;
+
+  const eveningStart = 18 * 60;
+  const eveningEnd = 23 * 60;
+
+  return (
+    (currentTime >= lunchStart && currentTime < lunchEnd) ||
+    (currentTime >= eveningStart && currentTime < eveningEnd)
+  );
+}
+
+function handleRestaurantContact(event) {
+  if (!isRestaurantOpenForCalls()) {
+    event.preventDefault();
+
+    window.alert(
+      "Rohit Food Junction is currently closed for calls.\n\n" +
+      "Please contact us during:\n" +
+      "Lunch: 11:00 AM – 3:00 PM\n" +
+      "Evening: 6:00 PM – 11:00 PM"
+    );
+  }
+}
 
 function ProfileDrawer({ isOpen, onClose }) {
   const navigate = useNavigate();
@@ -55,6 +109,14 @@ function ProfileDrawer({ isOpen, onClose }) {
   const closeDrawer = () => {
     setShowAccountDetails(false);
     onClose();
+  };
+
+  const handleContactClick = (event) => {
+    handleRestaurantContact(event);
+
+    if (!event.defaultPrevented) {
+      closeDrawer();
+    }
   };
 
   return (
@@ -128,30 +190,28 @@ function ProfileDrawer({ isOpen, onClose }) {
               </p>
             )}
 
-            
-{user && !showAccountDetails && (
-  <div className="mt-2 flex w-full flex-col items-center gap-2">
-    <button
-      type="button"
-      onClick={() => setShowAccountDetails(true)}
-      className="rounded-full border border-[#b32d0f]/40 px-4 py-1 text-[10px] font-semibold text-[#b32d0f] transition-colors hover:bg-[#fbf2ed]"
-    >
-      Account Details
-    </button>
+            {user && !showAccountDetails && (
+              <div className="mt-2 flex w-full flex-col items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAccountDetails(true)}
+                  className="rounded-full border border-[#b32d0f]/40 px-4 py-1 text-[10px] font-semibold text-[#b32d0f] transition-colors hover:bg-[#fbf2ed]"
+                >
+                  Account Details
+                </button>
 
-    <button
-      type="button"
-      onClick={() => {
-        closeDrawer();
-        navigate("/customerprofile");
-      }}
-      className="rounded-full bg-[#b32d0f] px-4 py-2 text-[11px] font-semibold text-white transition-colors hover:bg-[#8d1900]"
-    >
-      View Full Profile
-    </button>
-  </div>
-)}
-
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeDrawer();
+                    navigate("/customerprofile");
+                  }}
+                  className="rounded-full bg-[#b32d0f] px-4 py-2 text-[11px] font-semibold text-white transition-colors hover:bg-[#8d1900]"
+                >
+                  View Full Profile
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Account Details */}
@@ -193,7 +253,7 @@ function ProfileDrawer({ isOpen, onClose }) {
               <button
                 type="button"
                 onClick={() => {
-                  onClose();
+                  closeDrawer();
                   navigate("/customercart");
                 }}
                 className="flex items-center justify-between rounded-lg px-3 py-2.5 text-left text-[12px] font-medium text-[#5a413b] transition-colors hover:bg-[#fbf2ed]"
@@ -217,23 +277,27 @@ function ProfileDrawer({ isOpen, onClose }) {
                 <span>›</span>
               </button>
 
-              <Link
-                to="/reviews"
-                onClick={onClose}
+              {/* Google Reviews */}
+              <a
+                href={GOOGLE_REVIEWS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={closeDrawer}
                 className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-[12px] font-medium text-[#5a413b] transition-colors hover:bg-[#fbf2ed]"
               >
                 <span className="text-[#b32d0f]">☆</span>
                 <span>Reviews</span>
-              </Link>
+              </a>
 
-              <Link
-                to="/contactus"
-                onClick={onClose}
+              {/* Contact during restaurant operating hours */}
+              <a
+                href={`tel:${RESTAURANT_PHONE}`}
+                onClick={handleContactClick}
                 className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-[12px] font-medium text-[#5a413b] transition-colors hover:bg-[#fbf2ed]"
               >
                 <span className="text-[#b32d0f]">♧</span>
                 <span>Contact Us</span>
-              </Link>
+              </a>
 
               <button
                 type="button"

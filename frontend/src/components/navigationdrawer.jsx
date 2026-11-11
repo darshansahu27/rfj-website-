@@ -1,4 +1,86 @@
+
 import { Link, useLocation } from "react-router-dom";
+
+// RFJ Google Business Profile
+const GOOGLE_REVIEWS_URL =
+  "https://g.page/r/CZKPvAt8YICJEBM/review";
+
+// Restaurant contact number
+const RESTAURANT_PHONE = "+918264380438";
+
+// Check restaurant calling hours using Indian Standard Time.
+function isRestaurantOpenForCalls() {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date());
+
+  const hours = Number(
+    parts.find((part) => part.type === "hour").value
+  );
+
+  const minutes = Number(
+    parts.find((part) => part.type === "minute").value
+  );
+
+  const currentTime = hours * 60 + minutes;
+
+  const lunchStart = 11 * 60;
+  const lunchEnd = 15 * 60;
+
+  const eveningStart = 18 * 60;
+  const eveningEnd = 23 * 60;
+
+  return (
+    (currentTime >= lunchStart && currentTime < lunchEnd) ||
+    (currentTime >= eveningStart && currentTime < eveningEnd)
+  );
+}
+
+function handleRestaurantContact() {
+  if (!isRestaurantOpenForCalls()) {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Asia/Kolkata",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(new Date());
+
+    const hours = Number(
+      parts.find((part) => part.type === "hour").value
+    );
+
+    const minutes = Number(
+      parts.find((part) => part.type === "minute").value
+    );
+
+    const currentTime = hours * 60 + minutes;
+
+    let message;
+
+    if (currentTime < 11 * 60) {
+      message = "The restaurant opens at 11:00 AM.";
+    } else if (currentTime < 18 * 60) {
+      message = "The restaurant reopens at 6:00 PM.";
+    } else {
+      message =
+        "The restaurant is closed now. It opens tomorrow at 11:00 AM.";
+    }
+
+    window.alert(
+      "Rohit Food Junction is currently closed for calls.\n\n" +
+      message +
+      "\n\nLunch: 11:00 AM – 3:00 PM\n" +
+      "Evening: 6:00 PM – 11:00 PM"
+    );
+
+    return;
+  }
+
+  window.location.href = `tel:${RESTAURANT_PHONE}`;
+}
 
 function HomeIcon() {
   return (
@@ -108,10 +190,6 @@ function NavigationDrawer({ isOpen, onClose }) {
 
   const isMenu = location.pathname === "/menu";
 
-  const isReviews = location.pathname === "/reviews";
-
-  const isContact = location.pathname === "/contactus";
-
   return (
     <>
       {/* Overlay */}
@@ -123,7 +201,6 @@ function NavigationDrawer({ isOpen, onClose }) {
         />
       )}
 
-
       {/* Drawer */}
 
       <aside
@@ -133,11 +210,9 @@ function NavigationDrawer({ isOpen, onClose }) {
             : "translate-x-full"
         }`}
       >
-
         {/* Drawer Header */}
 
         <div className="flex items-center justify-between px-4 pb-5 pt-7">
-
           <h2
             className="text-[18px] font-bold text-[#8d1900]"
             style={{
@@ -155,14 +230,11 @@ function NavigationDrawer({ isOpen, onClose }) {
           >
             <CloseIcon />
           </button>
-
         </div>
-
 
         {/* Navigation */}
 
         <nav className="flex flex-col gap-1 px-4">
-
           {/* Home */}
 
           <Link
@@ -175,12 +247,8 @@ function NavigationDrawer({ isOpen, onClose }) {
             }`}
           >
             <HomeIcon />
-
-            <span>
-              Home
-            </span>
+            <span>Home</span>
           </Link>
-
 
           {/* Menu */}
 
@@ -194,52 +262,36 @@ function NavigationDrawer({ isOpen, onClose }) {
             }`}
           >
             <MenuIcon />
-
-            <span>
-              Menu
-            </span>
+            <span>Menu</span>
           </Link>
-
 
           {/* Reviews */}
 
-          <Link
-            to="/reviews"
+          <a
+            href={GOOGLE_REVIEWS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
             onClick={onClose}
-            className={`flex h-10.5 items-center gap-3 rounded-lg px-3 text-[12px] ${
-              isReviews
-                ? "bg-[#b32d0f] text-white"
-                : "text-[#5a413b]"
-            }`}
+            className="flex h-10.5 items-center gap-3 rounded-lg px-3 text-[12px] text-[#5a413b] transition-colors hover:bg-[#fbf2ed]"
           >
             <ReviewsIcon />
-
-            <span>
-              Reviews
-            </span>
-          </Link>
-
+            <span>Reviews</span>
+          </a>
 
           {/* Contact Us */}
 
-          <Link
-            to="/contactus"
-            onClick={onClose}
-            className={`flex h-10.5 items-center gap-3 rounded-lg px-3 text-[12px] ${
-              isContact
-                ? "bg-[#b32d0f] text-white"
-                : "text-[#5a413b]"
-            }`}
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              handleRestaurantContact();
+            }}
+            className="flex h-10.5 w-full items-center gap-3 rounded-lg px-3 text-left text-[12px] text-[#5a413b] transition-colors hover:bg-[#fbf2ed]"
           >
             <ContactIcon />
-
-            <span>
-              Contact Us
-            </span>
-          </Link>
-
+            <span>Contact Us</span>
+          </button>
         </nav>
-
       </aside>
     </>
   );
