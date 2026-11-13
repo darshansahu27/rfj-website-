@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { auth } from "../firebase";
 
@@ -85,6 +86,16 @@ function OwnerProfileModals({
       const apiUrl =
         import.meta.env.VITE_API_URL || "http://localhost:5000";
 
+      // Diagnostic logs
+      console.log("Avatar upload starting");
+      console.log("API URL:", apiUrl);
+      console.log(
+        "Selected file:",
+        file.name,
+        file.type,
+        file.size
+      );
+
       const response = await fetch(
         `${apiUrl}/api/profile/owner/avatar`,
         {
@@ -96,7 +107,27 @@ function OwnerProfileModals({
         }
       );
 
-      const result = await response.json();
+      console.log(
+        "Avatar upload response status:",
+        response.status
+      );
+
+      const responseText = await response.text();
+
+      console.log(
+        "Avatar upload response body:",
+        responseText
+      );
+
+      let result;
+
+      try {
+        result = JSON.parse(responseText);
+      } catch {
+        throw new Error(
+          `Backend returned a non-JSON response. HTTP ${response.status}`
+        );
+      }
 
       if (!response.ok || !result.success) {
         throw new Error(
@@ -109,6 +140,11 @@ function OwnerProfileModals({
           "The server did not return the uploaded image URL."
         );
       }
+
+      console.log(
+        "Avatar upload successful:",
+        result.avatarUrl
+      );
 
       onSaveImage(result.avatarUrl);
       onClose("image");

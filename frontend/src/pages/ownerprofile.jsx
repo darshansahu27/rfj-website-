@@ -92,7 +92,7 @@ function OwnerProfile() {
       setProfileImage(result.profile.avatarUrl || "");
 
       // Load the real manager details from the backend.
-      fetch(`${VITE_API_URL}/api/profile/me`, {
+      const managerResponse = await fetch(`${apiUrl}/api/profile/me`, {
   headers: {
     Authorization: `Bearer ${token}`,
   },
