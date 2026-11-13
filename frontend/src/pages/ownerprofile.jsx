@@ -91,25 +91,28 @@ function OwnerProfile() {
 
       setProfileImage(result.profile.avatarUrl || "");
 
-      // Load the real manager details from the backend.
-      const managerResponse = await fetch(`${apiUrl}/api/profile/me`, {
-  headers: {
-    Authorization: `Bearer ${token}`,
-  },
+      // Load the existing manager's details from the backend.
+const managerResponse = await fetch(
+  `${apiUrl}/api/profile/owner/manager`,
+  {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
+);
+
+const managerResult = await managerResponse.json();
+
+if (!managerResponse.ok || !managerResult.success) {
+  throw new Error(
+    managerResult.message || "Unable to load manager details."
+  );
+}
+
+setManager({
+  name: managerResult.manager?.name || "",
+  email: managerResult.manager?.email || "",
 });
-
-      const managerResult = await managerResponse.json();
-
-      if (!managerResponse.ok || !managerResult.success) {
-        throw new Error(
-          managerResult.message || "Unable to load manager details."
-        );
-      }
-
-      setManager({
-        name: managerResult.manager?.name || "",
-        email: managerResult.manager?.email || "",
-      });
     },
     [apiUrl]
   );

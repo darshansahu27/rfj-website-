@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import express from "express";
 import supabaseAdmin from "../config/supabaseAdmin.js";
 import verifyFirebaseToken from "../middleware/verifyFirebaseToken.js";
+import firebaseAdminAuth from "../config/firebaseAdmin.js";
 
 const router = express.Router();
 
@@ -174,6 +175,208 @@ router.post(
 );
 
 // Get the logged-in customer's profile.
+
+// Get the existing manager's account details (owner only).
+router.get("/owner/manager", verifyFirebaseToken, async (req, res) => {
+  try {
+    const ownerUid = req.firebaseUser.uid;
+
+    const { data: owner, error: ownerError } = await supabaseAdmin
+      .from("profiles")
+      .select("id, role")
+      .eq("firebase_uid", ownerUid)
+      .maybeSingle();
+
+    if (ownerError) throw ownerError;
+
+    if (!owner || owner.role !== "owner") {
+      return res.status(403).json({
+        success: false,
+        message: "Only the owner can view manager details.",
+      });
+    }
+
+    const { data: manager, error: managerError } = await supabaseAdmin
+      .from("profiles")
+      .select("id, full_name, role, firebase_uid")
+      .eq("role", "manager")
+      .maybeSingle();
+
+    if (managerError) throw managerError;
+
+    if (!manager || !manager.firebase_uid) {
+      return res.status(404).json({
+        success: false,
+        message: "Manager account not found.",
+      });
+    }
+
+    const firebaseManager = await firebaseAdminAuth.getUser(
+      manager.firebase_uid
+    );
+
+    return res.json({
+      success: true,
+      manager: {
+        name: manager.full_name,
+        email: firebaseManager.email || "",
+      },
+    });
+  } catch (error) {
+    console.error("Manager lookup failed:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to load manager details.",
+    });
+  }
+});
+
+
+// Update the existing manager's Firebase account (owner only).
+router.patch("/owner/manager", verifyFirebaseToken, async (req, res) => {
+  try {
+    const ownerUid = req.firebaseUser.uid;
+
+    const { data: owner, error: ownerError } = await supabaseAdmin
+      .from("profiles")
+      .select("id, role")
+      .eq("firebase_uid", ownerUid)
+      .maybeSingle();
+
+    if (ownerError) throw ownerError;
+
+    if (!owner || owner.role !== "owner") {
+      return res.status(403).json({
+        success: false,
+        message: "Only the owner can update manager credentials.",
+      });
+    }
+
+    const name =
+      typeof req.body?.name === "string"
+        ? req.body.name.trim()
+        : "";
+
+    const email =
+      typeof req.body?.email === "string"
+        ? req.body.email.trim()
+        : "";
+
+    const password = req.body?.password;
+
+    if (name.length < 2 || name.length > 100) {
+      return res.status(400).json({
+        success: false,
+        message: "Manager name must be between 2 and 100 characters.",
+      });
+    }
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter a valid manager email address.",
+      });
+    }
+
+    if (
+      password !== undefined &&
+      password !== null &&
+      password !== "" &&
+      (typeof password !== "string" || password.length < 6)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "The new password must contain at least 6 characters.",
+      });
+    }
+
+    const { data: manager, error: managerError } = await supabaseAdmin
+      .from("profiles")
+      .select("id, full_name, role, firebase_uid")
+      .eq("role", "manager")
+      .maybeSingle();
+
+    if (managerError) throw managerError;
+
+    if (!manager || !manager.firebase_uid) {
+      return res.status(404).json({
+        success: false,
+        message: "Existing manager account not found.",
+      });
+    }
+
+    const firebaseUpdate = {
+      displayName: name,
+      email,
+    };
+
+    if (password) {
+      firebaseUpdate.password = password;
+    }
+
+    // Update the existing Firebase user. Never create a new account.
+    await firebaseAdminAuth.updateUser(
+  manager.firebase_uid,
+  firebaseUpdate
+);
+
+    // Keep the existing Supabase profile synchronized.
+    const { error: profileUpdateError } = await supabaseAdmin
+      .from("profiles")
+      .update({
+        full_name: name,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", manager.id);
+
+    if (profileUpdateError) {
+      console.error(
+        "Manager profile synchronization failed:",
+        profileUpdateError
+      );
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Firebase credentials were updated, but the profile name could not be synchronized. Please contact the administrator.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Manager credentials updated successfully.",
+      manager: {
+        name: name,
+        email: updatedFirebaseUser.email || email,
+      },
+    });
+  } catch (error) {
+    console.error("Manager credential update failed:", error);
+
+    const status =
+      error.code === "auth/email-already-exists" ? 409 :
+      error.code === "auth/invalid-email" ? 400 :
+      error.code === "auth/weak-password" ? 400 :
+      error.code === "auth/user-not-found" ? 404 :
+      500;
+
+    const message =
+      error.code === "auth/email-already-exists"
+        ? "This email address is already used by another account."
+        : error.code === "auth/invalid-email"
+        ? "The manager email address is invalid."
+        : error.code === "auth/weak-password"
+        ? "The new password is too weak."
+        : "Unable to update manager credentials.";
+
+    return res.status(status).json({
+      success: false,
+      message,
+    });
+  }
+});
+
 router.get("/customer", verifyFirebaseToken, async (req, res) => {
   try {
     const firebaseUid = req.firebaseUser.uid;
