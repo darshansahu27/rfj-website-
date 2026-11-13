@@ -1,10 +1,35 @@
 
+import multer from "multer";
+import cloudinary from "../config/cloudinary.js";
 import { randomUUID } from "node:crypto";
 import express from "express";
 import supabaseAdmin from "../config/supabaseAdmin.js";
 import verifyFirebaseToken from "../middleware/verifyFirebaseToken.js";
 
 const router = express.Router();
+
+// Image upload configuration.
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
+
+    if (!allowedTypes.includes(file.mimetype)) {
+      return cb(
+        new Error("Only JPEG, PNG, and WebP images are allowed.")
+      );
+    }
+
+    cb(null, true);
+  },
+});
 
 // Existing owner/manager profile endpoint.
 router.get("/me", verifyFirebaseToken, async (req, res) => {
@@ -13,7 +38,7 @@ router.get("/me", verifyFirebaseToken, async (req, res) => {
 
     const { data: profile, error } = await supabaseAdmin
       .from("profiles")
-      .select("id, full_name, role, firebase_uid")
+      .select("id, full_name, role, firebase_uid, avatar_url")
       .eq("firebase_uid", firebaseUid)
       .maybeSingle();
 
@@ -38,6 +63,7 @@ router.get("/me", verifyFirebaseToken, async (req, res) => {
       profile: {
         fullName: profile.full_name,
         role: profile.role,
+        avatarUrl: profile.avatar_url || "",
       },
     });
   } catch (error) {
@@ -49,8 +75,105 @@ router.get("/me", verifyFirebaseToken, async (req, res) => {
     });
   }
 });
-// Get the logged-in customer's profile.
 
+// Upload owner profile photo to Cloudinary.
+router.post(
+  "/owner/avatar",
+  verifyFirebaseToken,
+  (req, res, next) => {
+    upload.single("avatar")(req, res, (error) => {
+      if (error) {
+        return res.status(400).json({
+          success: false,
+          message:
+            error.code === "LIMIT_FILE_SIZE"
+              ? "Image must be 5 MB or smaller."
+              : error.message,
+        });
+      }
+
+      next();
+    });
+  },
+  async (req, res) => {
+    try {
+      const firebaseUid = req.firebaseUser.uid;
+
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: "Please select an image.",
+        });
+      }
+
+      // Verify that the authenticated user is the owner.
+      const { data: profile, error: profileError } =
+        await supabaseAdmin
+          .from("profiles")
+          .select("id, role")
+          .eq("firebase_uid", firebaseUid)
+          .maybeSingle();
+
+      if (profileError) throw profileError;
+
+      if (!profile || profile.role !== "owner") {
+        return res.status(403).json({
+          success: false,
+          message: "Only the owner can update this profile photo.",
+        });
+      }
+
+      // Upload image to Cloudinary.
+      const uploadResult = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            folder: "rfj/owner-avatars",
+            public_id: `owner-${profile.id}`,
+            overwrite: true,
+            resource_type: "image",
+          },
+          (error, result) => {
+            if (error) {
+              reject(error);
+            } else {
+              resolve(result);
+            }
+          }
+        );
+
+        stream.end(req.file.buffer);
+      });
+
+      const avatarUrl = uploadResult.secure_url;
+
+      // Save Cloudinary URL in the existing profiles table.
+      const { error: updateError } = await supabaseAdmin
+        .from("profiles")
+        .update({
+          avatar_url: avatarUrl,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", profile.id);
+
+      if (updateError) throw updateError;
+
+      return res.json({
+        success: true,
+        avatarUrl,
+        message: "Profile photo updated successfully.",
+      });
+    } catch (error) {
+      console.error("Owner avatar upload failed:", error);
+
+      return res.status(500).json({
+        success: false,
+        message: "Unable to upload profile photo.",
+      });
+    }
+  }
+);
+
+// Get the logged-in customer's profile.
 router.get("/customer", verifyFirebaseToken, async (req, res) => {
   try {
     const firebaseUid = req.firebaseUser.uid;
@@ -117,6 +240,7 @@ router.get("/customer", verifyFirebaseToken, async (req, res) => {
 router.post("/customer", verifyFirebaseToken, async (req, res) => {
   try {
     const firebaseUid = req.firebaseUser.uid;
+
     const suppliedName =
       typeof req.body?.fullName === "string"
         ? req.body.fullName.trim()
@@ -154,8 +278,7 @@ router.post("/customer", verifyFirebaseToken, async (req, res) => {
       if (existingProfile.role !== "customer") {
         return res.status(403).json({
           success: false,
-          message:
-            "This account is not registered as a customer.",
+          message: "This account is not registered as a customer.",
         });
       }
 
@@ -231,8 +354,7 @@ router.post("/customer", verifyFirebaseToken, async (req, res) => {
   }
 });
 
-
-
+// Update the logged-in customer's profile.
 router.patch("/customer", verifyFirebaseToken, async (req, res) => {
   try {
     const firebaseUid = req.firebaseUser.uid;
@@ -383,6 +505,5 @@ router.patch("/customer", verifyFirebaseToken, async (req, res) => {
     });
   }
 });
-
 
 export default router;

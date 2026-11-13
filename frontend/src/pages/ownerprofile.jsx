@@ -92,14 +92,11 @@ function OwnerProfile() {
       setProfileImage(result.profile.avatarUrl || "");
 
       // Load the real manager details from the backend.
-      const managerResponse = await fetch(
-        `${apiUrl}/api/profile/owner/manager`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      fetch(`${API_URL}/api/profile/me`, {
+  headers: {
+    Authorization: `Bearer ${token}`,
+  },
+});
 
       const managerResult = await managerResponse.json();
 
