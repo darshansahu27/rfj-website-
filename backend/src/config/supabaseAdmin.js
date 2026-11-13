@@ -4,6 +4,10 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !serviceRoleKey) {
+  console.log("Supabase environment check:", {
+  hasSupabaseUrl: Boolean(supabaseUrl),
+  hasServiceRoleKey: Boolean(serviceRoleKey),
+});
   throw new Error("Missing Supabase server environment variables");
 }
 
