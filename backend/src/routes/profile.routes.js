@@ -348,7 +348,7 @@ router.patch("/owner/manager", verifyFirebaseToken, async (req, res) => {
       message: "Manager credentials updated successfully.",
       manager: {
         name: name,
-        email: updatedFirebaseUser.email || email,
+        email: email,
       },
     });
   } catch (error) {
